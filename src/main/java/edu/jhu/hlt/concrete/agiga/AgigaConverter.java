@@ -5,7 +5,7 @@ import edu.jhu.hlt.concrete.Concrete.TokenTagging.TaggedToken;
 import edu.jhu.hlt.concrete.util.*;
 import edu.jhu.hlt.concrete.io.ProtocolBufferWriter;
 import edu.jhu.agiga.*;
-import edu.stanford.nlp.trees.Tree;
+import edu.stanford.nlp.trees.*;
 import java.util.*;
 import java.io.*;
 
@@ -52,7 +52,7 @@ class AgigaConverter {
 	/**
 	 * i'm using int[] as a java hack for int* (pass by reference rather than value).
 	 */
-	private static Constituent s2cHelper(Tree root, int[] nodeCounter, int left, int right, Tokenization tokenization) {
+	private static Parse.Constituent s2cHelper(Tree root, int[] nodeCounter, int left, int right, Tokenization tokenization) {
 		assert(nodeCounter.length == 1);
 		Parse.Constituent.Builder cb = Parse.Constituent.newBuilder()
 			.setId(nodeCounter[0]++)
@@ -64,9 +64,9 @@ class AgigaConverter {
 		int i = 0, headTreeIdx = -1;
 
 		int leftPtr = left;
-		for(Tree child : root.getChildren()) {
+		for(Tree child : root.getChildrenAsList()) {
 			int width = child.getLeaves().size();
-			cb.addChild(s2cHelper(child, nodeCounter, leftPtr, leftPtr + width);
+			cb.addChild(s2cHelper(child, nodeCounter, leftPtr, leftPtr + width, tokenization));
 			leftPtr += width;
 			if(child == headTree) {
 				assert(headTreeIdx < 0);
@@ -77,7 +77,7 @@ class AgigaConverter {
 		assert(leftPtr == right);
 
 		if(headTreeIdx >= 0)
-			cb.setHeadChildIdx(headTreeIdx);
+			cb.setHeadChildIndex(headTreeIdx);
 
 		return cb.build();
 	}
@@ -108,15 +108,15 @@ class AgigaConverter {
 	public static DependencyParse convertDependencyParse(List<AgigaTypedDependency> deps, String name, Tokenization tokenization) {
 		DependencyParse.Builder db = DependencyParse.newBuilder()
 			.setUuid(IdUtil.generateUUID())
-			.setMetadata(metadata())
+			.setMetadata(metadata());
 		for(AgigaTypedDependency ad : deps) {
 			
 			DependencyParse.Dependency.Builder depB = DependencyParse.Dependency.newBuilder()
 				.setDep(extractTokenRef(ad.getGovIdx(), tokenization))
-				.setEdgeType(ad.getType())
+				.setEdgeType(ad.getType());
 
 			if(ad.getGovIdx() >= 0)	// else ROOT
-				depB.setGov(extractTokenRef(ad.getGovIdx(), tokenization))
+				depB.setGov(extractTokenRef(ad.getGovIdx(), tokenization));
 
 			db.addDependency(depB.build());
 		}
