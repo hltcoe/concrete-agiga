@@ -4,8 +4,14 @@
 
   <groupId>edu.jhu.concrete</groupId>
   <artifactId>concrete-agiga</artifactId>
-  <version>1.0.0</version>
+  <version>1.0.0-SNAPSHOT</version>
   <packaging>jar</packaging>
+
+  <parent>
+    <groupId>edu.jhu.parent</groupId>
+    <artifactId>parent</artifactId>
+    <version>1.0.0</version>
+  </parent>
 
   <name>Concrete - Agiga Converter</name>
 
@@ -13,12 +19,12 @@
     <maven>3.0.4</maven>
   </prerequisites>
 
-<licenses>
-  <license>
-	<name>GNU General Public License (GPL)</name>
-	<url>http://www.gnu.org/licenses/gpl.txt</url>
-  </license>
-</licenses>
+  <licenses>
+    <license>
+    <name>GNU General Public License (GPL)</name>
+    <url>http://www.gnu.org/licenses/gpl.txt</url>
+    </license>
+  </licenses>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -99,12 +105,12 @@
       <version>1.0</version>
     </dependency>
     <dependency>
-      <groupId>edu.jhu.concrete</groupId>
+      <groupId>edu.jhu.hlt.concrete</groupId>
       <artifactId>concrete-java</artifactId>
       <version>1.0.0-SNAPSHOT</version>
     </dependency>
     <dependency>
-      <groupId>edu.jhu.concrete</groupId>
+      <groupId>edu.jhu.hlt.concrete</groupId>
       <artifactId>concrete-protobufs</artifactId>
       <version>1.0.2-SNAPSHOT</version>
     </dependency>
@@ -127,3 +133,4 @@
   </repositories>
 </project>
 
+<!-- vim: set ts=2 sw=2 expandtab : -->
