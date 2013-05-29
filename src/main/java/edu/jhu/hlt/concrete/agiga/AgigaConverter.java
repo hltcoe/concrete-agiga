@@ -93,6 +93,7 @@ class AgigaConverter {
 	}
 
 	public static TokenRef extractTokenRef(int index, Tokenization tokenization) {
+		assert(index >= 0);
 		assert(tokenization.getKind() == Tokenization.Kind.TOKEN_LIST);
 		int tokId = tokenization.getToken(index).getTokenId();
 		return TokenRef.newBuilder()
@@ -112,7 +113,7 @@ class AgigaConverter {
 		for(AgigaTypedDependency ad : deps) {
 			
 			DependencyParse.Dependency.Builder depB = DependencyParse.Dependency.newBuilder()
-				.setDep(extractTokenRef(ad.getGovIdx(), tokenization))
+				.setDep(extractTokenRef(ad.getDepIdx(), tokenization))
 				.setEdgeType(ad.getType());
 
 			if(ad.getGovIdx() >= 0)	// else ROOT
@@ -245,6 +246,7 @@ class AgigaConverter {
 
 	// need some code that reads agiga docs, converts, and then dumps them into a file
 	public static void main(String[] args) throws Exception {
+		assert(false);
 		if(args.length != 2) {
 			System.out.println("please provide:");
 			System.out.println("1) an input Agiga XML file");
