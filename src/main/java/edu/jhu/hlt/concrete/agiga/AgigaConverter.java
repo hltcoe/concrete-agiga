@@ -7,6 +7,7 @@ import edu.jhu.hlt.concrete.io.ProtocolBufferWriter;
 import edu.jhu.agiga.*;
 import edu.stanford.nlp.trees.*;
 import java.util.*;
+import java.util.zip.GZIPOutputStream;
 import java.io.*;
 
 class AgigaConverter {
@@ -15,9 +16,12 @@ class AgigaConverter {
 	public static final String corpusName = "Annotated Gigaword";
 	public static final double annotationTime = Calendar.getInstance().getTimeInMillis() / 1000d;
 
-	public static AnnotationMetadata metadata() {
+	public static AnnotationMetadata metadata() { return metadata(null); }
+	public static AnnotationMetadata metadata(String addToToolName) {
+		String fullToolName = toolName;
+		if(addToToolName != null) fullToolName += addToToolName;
 		return AnnotationMetadata.newBuilder()
-			.setTool(toolName)
+			.setTool(fullToolName)
 			.setTimestamp(annotationTime)
 			.setConfidence(1f)
 			.build();
@@ -43,7 +47,7 @@ class AgigaConverter {
 		int right = root.getLeaves().size();
 		return Parse.newBuilder()
 			.setUuid(IdUtil.generateUUID())
-			.setMetadata(metadata())
+			.setMetadata(metadata(" http://www.aclweb.org/anthology-new/D/D10/D10-1002.pdf"))
 			.setRoot(s2cHelper(root, nodeCounter, left, right, tokenization))
 			.build();
 	}
@@ -111,7 +115,7 @@ class AgigaConverter {
 	public static DependencyParse convertDependencyParse(List<AgigaTypedDependency> deps, String name, Tokenization tokenization) {
 		DependencyParse.Builder db = DependencyParse.newBuilder()
 			.setUuid(IdUtil.generateUUID())
-			.setMetadata(metadata());
+			.setMetadata(metadata(" " + name + " http://nlp.stanford.edu/software/dependencies_manual.pdf"));
 		for(AgigaTypedDependency ad : deps) {
 			
 			DependencyParse.Dependency.Builder depB = DependencyParse.Dependency.newBuilder()
@@ -146,7 +150,7 @@ class AgigaConverter {
 
 		Tokenization.Builder tb = Tokenization.newBuilder()
 			.setUuid(IdUtil.generateUUID())
-			.setMetadata(metadata())
+			.setMetadata(metadata(" http://nlp.stanford.edu/software/tokensregex.shtml"))
 			.setKind(Tokenization.Kind.TOKEN_LIST);
 		int charOffset = 0;
 		int tokId = 0;
@@ -209,7 +213,7 @@ class AgigaConverter {
 	public static SentenceSegmentation sentenceSegment(AgigaDocument doc, List<Tokenization> addTo) {
 		SentenceSegmentation.Builder sb = SentenceSegmentation.newBuilder()
 			.setUuid(IdUtil.generateUUID())
-			.setMetadata(metadata());
+			.setMetadata(metadata(" Splitta http://www.aclweb.org/anthology-new/N/N09/N09-2061.pdf"));
 		for(AgigaSentence sentence : doc.getSents())
 			sb = sb.addSentence(convertSentence(sentence, addTo));
 		return sb.build();
@@ -285,7 +289,7 @@ class AgigaConverter {
 	public static EntityMentionSet convertCoref(AgigaCoref coref, AgigaDocument doc, List<Tokenization> toks) {
 		EntityMentionSet.Builder eb = EntityMentionSet.newBuilder()
 			.setUuid(IdUtil.generateUUID())
-			.setMetadata(metadata());
+			.setMetadata(metadata(" http://nlp.stanford.edu/pubs/conllst2011-coref.pdf"));
 		for(AgigaMention m : coref.getMentions())
 			eb.addMention(convertMention(m, doc, IdUtil.generateUUID(), toks.get(m.getSentenceIdx())));
 		return eb.build();
@@ -325,17 +329,29 @@ class AgigaConverter {
 		File agigaXML = new File(args[0]);	assert(agigaXML.exists() && agigaXML.isFile());
 		File output = new File(args[1]);
 		StreamingDocumentReader docReader = new StreamingDocumentReader(agigaXML.getPath(), new AgigaPrefs());
-		ProtocolBufferWriter writer = new ProtocolBufferWriter(new FileOutputStream(output));
+
+		BufferedOutputStream writer = new BufferedOutputStream(
+			output.getName().toLowerCase().endsWith("gz")
+			? new GZIPOutputStream(new FileOutputStream(output))
+			: new FileOutputStream(output));
+		//ProtocolBufferWriter writer = new ProtocolBufferWriter(new FileOutputStream(output));
 
 		// TODO we need a knowledge graph
 		KnowledgeGraph kg = new ProtoFactory(9001).generateKnowledgeGraph();
-		writer.write(kg);
+		kg.writeDelimitedTo(writer);
+		//writer.write(kg);
 
 		int c = 0;
+		int step = 250;
 		for(AgigaDocument doc : docReader) {
 			Communication comm = convertDoc(doc, kg);
-			writer.write(comm);
+			comm.writeDelimitedTo(writer);
+			//writer.write(comm);
 			c++;
+			if(c % step == 0) {
+				System.out.printf("wrote %d documents in %.1f sec\n",
+					c, (System.currentTimeMillis() - start)/1000d);
+			}
 		}
 		writer.close();
 		System.out.printf("done, wrote %d communications to %s in %.1f seconds\n",
