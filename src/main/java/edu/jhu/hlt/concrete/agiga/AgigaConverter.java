@@ -9,7 +9,6 @@ import edu.stanford.nlp.trees.*;
 import java.util.*;
 import java.io.*;
 
-// TODO coref chains
 class AgigaConverter {
 
 	public static final String toolName = "Annotated Gigaword Pipeline";
@@ -52,15 +51,15 @@ class AgigaConverter {
 	/**
 	 * i'm using int[] as a java hack for int* (pass by reference rather than value).
 	 */
-	private static Parse.Constituent s2cHelper(Tree root, int[] nodeCounter, int left, int right, Tokenization tokenization) {
+	private static final HeadFinder HEAD_FINDER = new SemanticHeadFinder();
+	private static Parse.Constituent.Builder s2cHelper(Tree root, int[] nodeCounter, int left, int right, Tokenization tokenization) {
 		assert(nodeCounter.length == 1);
 		Parse.Constituent.Builder cb = Parse.Constituent.newBuilder()
 			.setId(nodeCounter[0]++)
 			.setTag(root.value())
 			.setTokenSequence(extractTokenRefSequence(left, right, tokenization));
 
-		HeadFinder hf = new SemanticHeadFinder();
-		Tree headTree = hf.determineHead(root);
+		Tree headTree = HEAD_FINDER.determineHead(root);
 		int i = 0, headTreeIdx = -1;
 
 		int leftPtr = left;
@@ -79,9 +78,12 @@ class AgigaConverter {
 		if(headTreeIdx >= 0)
 			cb.setHeadChildIndex(headTreeIdx);
 
-		return cb.build();
+		return cb;
 	}
 
+	public static TokenRefSequence extractTokenRefSequence(AgigaMention m, Tokenization tok) {
+		return extractTokenRefSequence(m.getStartTokenIdx(), m.getEndTokenIdx(), tok);
+	}
 	public static TokenRefSequence extractTokenRefSequence(int left, int right, Tokenization tokenization) {
 		assert(left < right && left >= 0 && right <= tokenization.getTokenList().size());
 		assert(tokenization.getKind() == Tokenization.Kind.TOKEN_LIST);
@@ -185,8 +187,9 @@ class AgigaConverter {
 			.build();
 	}
 
-	public static Sentence convertSentence(AgigaSentence sent) {
+	public static Sentence convertSentence(AgigaSentence sent, List<Tokenization> addTo) {
 		Tokenization tokenization = convertTokenization(sent);
+		addTo.add(tokenization);	// one tokenization per sentence
 		return Sentence.newBuilder()
 			.setUuid(IdUtil.generateUUID())
 			.setTextSpan(TextSpan.newBuilder()
@@ -203,16 +206,16 @@ class AgigaConverter {
 			.build();
 	}
 
-	public static SentenceSegmentation sentenceSegment(AgigaDocument doc) {
+	public static SentenceSegmentation sentenceSegment(AgigaDocument doc, List<Tokenization> addTo) {
 		SentenceSegmentation.Builder sb = SentenceSegmentation.newBuilder()
 			.setUuid(IdUtil.generateUUID())
 			.setMetadata(metadata());
 		for(AgigaSentence sentence : doc.getSents())
-			sb = sb.addSentence(convertSentence(sentence));
+			sb = sb.addSentence(convertSentence(sentence, addTo));
 		return sb.build();
 	}
 
-	public static SectionSegmentation sectionSegment(AgigaDocument doc, String rawText) {
+	public static SectionSegmentation sectionSegment(AgigaDocument doc, String rawText, List<Tokenization> addTo) {
 		return SectionSegmentation.newBuilder()
 			.setUuid(IdUtil.generateUUID())
 			.setMetadata(metadata())
@@ -222,9 +225,70 @@ class AgigaConverter {
 					.setStart(0)
 					.setEnd(rawText.length())
 					.build())
-				.addSentenceSegmentation(sentenceSegment(doc))
+				.addSentenceSegmentation(sentenceSegment(doc, addTo))
 				.build())
 			.build();
+	}
+
+	public static String extractMentionString(AgigaMention m, AgigaDocument doc) {
+		List<AgigaToken> sentence = doc.getSents().get(m.getSentenceIdx()).getTokens();
+		StringBuilder sb = new StringBuilder();
+		for(int i=m.getStartTokenIdx(); i<m.getEndTokenIdx(); i++) {
+			sb.append(sentence.get(i).getWord());
+			if(i > m.getStartTokenIdx())
+				sb.append(" ");
+		}
+		return sb.toString();
+	}
+
+	public static TextSpan mention2TextSpan(AgigaMention m, AgigaDocument doc) {
+		// count the number of chars from the start of the sentence
+		int start = 0;
+		int end = 0;
+		List<AgigaToken> sentence = doc.getSents().get(m.getSentenceIdx()).getTokens();
+		StringBuilder sb = new StringBuilder();
+		for(int i=0; i<m.getEndTokenIdx(); i++) {
+			int len = sentence.get(i).getWord().length();
+			if(i < m.getStartTokenIdx())
+				start += len;
+			end += len;
+			
+			// spaces between words
+			if(i > m.getStartTokenIdx())	{
+				start++;
+				end++;
+			}
+		}
+		return TextSpan.newBuilder()
+			.setStart(start)
+			.setEnd(end)
+			.build();
+	}
+
+	public static EntityMention convertMention(AgigaMention m, AgigaDocument doc,
+			edu.jhu.hlt.concrete.Concrete.UUID corefSet, Tokenization tokenization) {
+		String mstring = extractMentionString(m, doc);
+		return EntityMention.newBuilder()
+			.setUuid(IdUtil.generateUUID())
+			.setTokenSequence(extractTokenRefSequence(m, tokenization))
+			.setEntityType(Entity.Type.UNKNOWN)
+			.setPhraseType(EntityMention.PhraseType.NAME)	// TODO warn users that this may not be accurate
+			.setConfidence(1f)
+			.setText(mstring)		// TODO merge this an method below
+			.setTextSpan(mention2TextSpan(m, doc))
+			.setCorefId(corefSet)
+			.setSentenceIndex(m.getSentenceIdx())
+			.setHeadIndex(m.getHeadTokenIdx())
+			.build();
+	}
+
+	public static EntityMentionSet convertCoref(AgigaCoref coref, AgigaDocument doc, List<Tokenization> toks) {
+		EntityMentionSet.Builder eb = EntityMentionSet.newBuilder()
+			.setUuid(IdUtil.generateUUID())
+			.setMetadata(metadata());
+		for(AgigaMention m : coref.getMentions())
+			eb.addMention(convertMention(m, doc, IdUtil.generateUUID(), toks.get(m.getSentenceIdx())));
+		return eb.build();
 	}
 
 	public static Communication convertDoc(AgigaDocument doc, KnowledgeGraph kg) {
@@ -233,14 +297,18 @@ class AgigaConverter {
 			.setCommunicationId(doc.getDocId())
 			.build();
 		String flatText = flattenText(doc);
-		return Communication.newBuilder()
+		List<Tokenization> toks = new ArrayList<Tokenization>();
+		Communication.Builder cb = Communication.newBuilder()
 			.setUuid(IdUtil.generateUUID())
 			.setGuid(guid)
 			.setText(flatText)
-			.addSectionSegmentation(sectionSegment(doc, flatText))
+			.addSectionSegmentation(sectionSegment(doc, flatText, toks))
 			.setKind(Communication.Kind.NEWS)
-			.setKnowledgeGraph(kg)
-			.build();
+			.setKnowledgeGraph(kg);
+		// this must occur last so that the tokenizations have been added to toks
+		for(AgigaCoref coref : doc.getCorefs())
+			cb.addEntityMentionSet(convertCoref(coref, doc, toks));
+		return cb.build();
 	}
 
 
