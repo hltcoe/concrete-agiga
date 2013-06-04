@@ -177,9 +177,9 @@ class AgigaConverter {
 			charOffset += tok.getWord().length() + 1;
 		}
 		return tb
-			.addLemmas(posBuilder.build())
+			.addLemmas(lemmaBuilder.build())
 			.addPosTags(posBuilder.build())
-			.addNerTags(posBuilder.build())
+			.addNerTags(nerBuilder.build())
 			.build();
 	}
 
