@@ -45,6 +45,20 @@ class AgigaConverter {
 		int[] nodeCounter = new int[]{0};
 		int left = 0;
 		int right = root.getLeaves().size();
+		// this was a bug in stanford nlp;
+		// if you have a terminal with a space in it, like (CD 2 1/2)
+		// stanford's getLeaves() will return Trees for 2 and 1/2
+		// whereas the tokenization will have one token for 2 1/2
+		// => this has since been handled in agiga, but this is a check to
+		//    make sure you have the right jar
+		if(root.getLeaves().size() != tokenization.getTokenList().size()) {
+			System.out.println("Tokenization length = " + tokenization.getTokenList().size());
+			System.out.println("Parse #leaves = " + root.getLeaves().size());
+			System.out.println("tokens = " + tokenization.getTokenList());
+			System.out.println("leaves = " + root.getLeaves());
+			System.out.println("make sure you have the newest version of agiga!");
+			throw new RuntimeException("Tokenization vs Parse error!");
+		}
 		return Parse.newBuilder()
 			.setUuid(IdUtil.generateUUID())
 			.setMetadata(metadata(" http://www.aclweb.org/anthology-new/D/D10/D10-1002.pdf"))
@@ -57,6 +71,7 @@ class AgigaConverter {
 	 */
 	private static final HeadFinder HEAD_FINDER = new SemanticHeadFinder();
 	private static Parse.Constituent.Builder s2cHelper(Tree root, int[] nodeCounter, int left, int right, Tokenization tokenization) {
+		//System.out.printf("[s2cHelper] root=%s nodeCounter=%d left=%d right=%d tok.size=%d\n", root.value(), nodeCounter[0], left, right, tokenization.getTokenList().size());
 		assert(nodeCounter.length == 1);
 		Parse.Constituent.Builder cb = Parse.Constituent.newBuilder()
 			.setId(nodeCounter[0]++)
@@ -69,6 +84,7 @@ class AgigaConverter {
 		int leftPtr = left;
 		for(Tree child : root.getChildrenAsList()) {
 			int width = child.getLeaves().size();
+			//System.out.printf("[sc2Helper] \t child=%s leftPtr=%d width=%d\n", child.value(), leftPtr, width);
 			cb.addChild(s2cHelper(child, nodeCounter, leftPtr, leftPtr + width, tokenization));
 			leftPtr += width;
 			if(child == headTree) {
@@ -77,7 +93,7 @@ class AgigaConverter {
 			}
 			i++;
 		}
-		assert(leftPtr == right);
+		//assert leftPtr == right-1 : String.format("left=%d right=%d", leftPtr, right);
 
 		if(headTreeIdx >= 0)
 			cb.setHeadChildIndex(headTreeIdx);
@@ -316,9 +332,7 @@ class AgigaConverter {
 	}
 
 
-	// need some code that reads agiga docs, converts, and then dumps them into a file
 	public static void main(String[] args) throws Exception {
-		assert(false);
 		if(args.length != 2) {
 			System.out.println("please provide:");
 			System.out.println("1) an input Agiga XML file");
@@ -334,12 +348,9 @@ class AgigaConverter {
 			output.getName().toLowerCase().endsWith("gz")
 			? new GZIPOutputStream(new FileOutputStream(output))
 			: new FileOutputStream(output));
-		//ProtocolBufferWriter writer = new ProtocolBufferWriter(new FileOutputStream(output));
 
-		// TODO we need a knowledge graph
 		KnowledgeGraph kg = new ProtoFactory(9001).generateKnowledgeGraph();
 		kg.writeDelimitedTo(writer);
-		//writer.write(kg);
 
 		int c = 0;
 		int step = 250;
