@@ -333,16 +333,14 @@ class AgigaConverter {
 
 
 	public static void main(String[] args) throws Exception {
-		if(args.length != 2) {
+		if(args.length < 2) {
 			System.out.println("please provide:");
-			System.out.println("1) an input Agiga XML file");
-			System.out.println("2) an output Concrete Protobuf file");
+			System.out.println("1 or more input Agiga XML files");
+			System.out.println("an output Concrete Protobuf file");
 			return;
 		}
 		long start = System.currentTimeMillis();
-		File agigaXML = new File(args[0]);	assert(agigaXML.exists() && agigaXML.isFile());
-		File output = new File(args[1]);
-		StreamingDocumentReader docReader = new StreamingDocumentReader(agigaXML.getPath(), new AgigaPrefs());
+		File output = new File(args[args.length-1]);
 
 		BufferedOutputStream writer = new BufferedOutputStream(
 			output.getName().toLowerCase().endsWith("gz")
@@ -354,14 +352,19 @@ class AgigaConverter {
 
 		int c = 0;
 		int step = 250;
-		for(AgigaDocument doc : docReader) {
-			Communication comm = convertDoc(doc, kg);
-			comm.writeDelimitedTo(writer);
-			//writer.write(comm);
-			c++;
-			if(c % step == 0) {
-				System.out.printf("wrote %d documents in %.1f sec\n",
-					c, (System.currentTimeMillis() - start)/1000d);
+		for(int i=0; i<args.length-1; i++) {
+			File agigaXML = new File(args[i]);	assert(agigaXML.exists() && agigaXML.isFile());
+			StreamingDocumentReader docReader = new StreamingDocumentReader(agigaXML.getPath(), new AgigaPrefs());
+			System.out.println("reading from " + agigaXML.getPath());
+			for(AgigaDocument doc : docReader) {
+				Communication comm = convertDoc(doc, kg);
+				comm.writeDelimitedTo(writer);
+				//writer.write(comm);
+				c++;
+				if(c % step == 0) {
+					System.out.printf("wrote %d documents in %.1f sec\n",
+						c, (System.currentTimeMillis() - start)/1000d);
+				}
 			}
 		}
 		writer.close();
