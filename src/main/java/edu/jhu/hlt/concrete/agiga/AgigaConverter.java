@@ -311,7 +311,8 @@ class AgigaConverter {
 		return eb.build();
 	}
 
-	public static Communication convertDoc(AgigaDocument doc, KnowledgeGraph kg) {
+	public static Communication convertDoc(AgigaDocument doc) {
+		KnowledgeGraph kg = new ProtoFactory(9001).generateKnowledgeGraph();
 		CommunicationGUID guid = CommunicationGUID.newBuilder()
 			.setCorpusName(corpusName)
 			.setCommunicationId(doc.getDocId())
@@ -347,9 +348,6 @@ class AgigaConverter {
 			? new GZIPOutputStream(new FileOutputStream(output))
 			: new FileOutputStream(output));
 
-		KnowledgeGraph kg = new ProtoFactory(9001).generateKnowledgeGraph();
-		kg.writeDelimitedTo(writer);
-
 		int c = 0;
 		int step = 250;
 		for(int i=0; i<args.length-1; i++) {
@@ -357,9 +355,8 @@ class AgigaConverter {
 			StreamingDocumentReader docReader = new StreamingDocumentReader(agigaXML.getPath(), new AgigaPrefs());
 			System.out.println("reading from " + agigaXML.getPath());
 			for(AgigaDocument doc : docReader) {
-				Communication comm = convertDoc(doc, kg);
+				Communication comm = convertDoc(doc);
 				comm.writeDelimitedTo(writer);
-				//writer.write(comm);
 				c++;
 				if(c % step == 0) {
 					System.out.printf("wrote %d documents in %.1f sec\n",
