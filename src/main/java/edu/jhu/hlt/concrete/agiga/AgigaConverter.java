@@ -78,7 +78,7 @@ class AgigaConverter {
 			.setTag(root.value())
 			.setTokenSequence(extractTokenRefSequence(left, right, tokenization));
 
-		Tree headTree = HEAD_FINDER.determineHead(root);
+		Tree headTree = root.isLeaf() ? null : HEAD_FINDER.determineHead(root);
 		int i = 0, headTreeIdx = -1;
 
 		int leftPtr = left;
@@ -87,7 +87,7 @@ class AgigaConverter {
 			//System.out.printf("[sc2Helper] \t child=%s leftPtr=%d width=%d\n", child.value(), leftPtr, width);
 			cb.addChild(s2cHelper(child, nodeCounter, leftPtr, leftPtr + width, tokenization));
 			leftPtr += width;
-			if(child == headTree) {
+			if(headTree != null && child == headTree) {
 				assert(headTreeIdx < 0);
 				headTreeIdx = i;
 			}
@@ -302,6 +302,11 @@ class AgigaConverter {
 			.build();
 	}
 
+	/**
+	 * TODO this needs to add both an EntityMentionSet (for all EntityMentions, which
+	 * represents just the mention locations) and a bunch of Entity's (which represent
+	 * the coreference relationships)
+	 */
 	public static EntityMentionSet convertCoref(AgigaCoref coref, AgigaDocument doc, List<Tokenization> toks) {
 		EntityMentionSet.Builder eb = EntityMentionSet.newBuilder()
 			.setUuid(IdUtil.generateUUID())
