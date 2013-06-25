@@ -58,7 +58,7 @@ class AgigaConverter {
 			System.out.println("tokens = " + tokenization.getTokenList());
 			System.out.println("leaves = " + root.getLeaves());
 			System.out.println("make sure you have the newest version of agiga!");
-			throw new RuntimeException("Tokenization vs Parse error!");
+			throw new RuntimeException("Tokenization vs Parse error! Make sure you have the newest agiga");
 		}
 		return Parse.newBuilder()
 			.setUuid(IdUtil.generateUUID())

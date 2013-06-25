@@ -1,17 +1,15 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-
-  <groupId>edu.jhu.hlt.concrete</groupId>
-  <artifactId>concrete-agiga</artifactId>
-  <version>1.0.0-SNAPSHOT</version>
-  <packaging>jar</packaging>
 
   <parent>
     <groupId>edu.jhu.parent</groupId>
     <artifactId>parent</artifactId>
     <version>1.0.0</version>
   </parent>
+
+  <groupId>edu.jhu.hlt.concrete-agiga</groupId>
+  <artifactId>concrete-agiga</artifactId>
+  <version>1.0.0</version>
 
   <name>Concrete - Agiga Converter</name>
 
@@ -25,6 +23,15 @@
       <url>http://www.gnu.org/licenses/gpl.txt</url>
     </license>
   </licenses>
+
+  <developers>
+    <developer>
+      <email>twolfe18@gmail.com</email>
+      <name>Travis Wolfe</name>
+      <url>https://github.com/twolfe18</url>
+      <id>twolfe18</id>
+    </developer>
+  </developers>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -92,7 +99,7 @@
 	      <id>make-assembly</id> <!-- this is used for inheritance merges -->
 	      <phase>package</phase> <!-- bind to the packaging phase -->
 	      <goals>
-		<goal>single</goal>
+          <goal>single</goal>
 	      </goals>
 	    </execution>
 	  </executions>
@@ -121,12 +128,17 @@
     <dependency>
       <groupId>edu.jhu.agiga</groupId>
       <artifactId>agiga</artifactId>
-      <version>1.0</version>
+      <version>1.2</version>
     </dependency>    
     <dependency>
       <groupId>edu.jhu.hlt.concrete</groupId>
       <artifactId>concrete-java</artifactId>
-      <version>1.0.9</version>
+      <version>1.0.11-SNAPSHOT</version>
+    </dependency>
+    <dependency>
+      <groupId>edu.jhu.hlt.concrete</groupId>
+      <artifactId>concrete-protobufs</artifactId>
+      <version>1.0.11-SNAPSHOT</version>
     </dependency>
     <dependency> 
       <groupId>ch.qos.logback</groupId>
@@ -146,18 +158,6 @@
     </dependency>
   </dependencies>
 
-  <!--
-      <repositories>
-      <repository>
-      <id>concrete-mvn-repo</id>
-      <url>https://raw.github.com/hltcoe/concrete/mvn-repo/</url>
-      <snapshots>
-      <enabled>true</enabled>
-      <updatePolicy>always</updatePolicy>
-      </snapshots>
-      </repository>
-      </repositories>
-  -->
 </project>
 
 <!-- vim: set ts=2 sw=2 expandtab : -->
