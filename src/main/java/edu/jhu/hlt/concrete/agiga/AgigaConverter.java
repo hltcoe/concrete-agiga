@@ -326,6 +326,8 @@ class AgigaConverter {
 		return entBuilder.build();
 	}
 
+	private static final ProtoFactory pf = new ProtoFactory(9001);
+
 	public static Communication convertDoc(AgigaDocument doc) {
 		KnowledgeGraph kg = new ProtoFactory(9001).generateKnowledgeGraph();
 		CommunicationGUID guid = CommunicationGUID.newBuilder()
@@ -354,6 +356,8 @@ class AgigaConverter {
 		}
 		cb.addEntityMentionSet(emsb);
 		cb.addEntitySet(esb);
+		cb.setUuid(IdUtil.generateUUID());
+		cb.setKnowledgeGraph(pf.generateMockKnowledgeGraph());
 		return cb.build();
 	}
 
