@@ -261,7 +261,7 @@ class AgigaConverter {
 		StringBuilder sb = new StringBuilder();
 		for(int i=m.getStartTokenIdx(); i<m.getEndTokenIdx(); i++) {
 			sb.append(sentence.get(i).getWord());
-			if(i > m.getStartTokenIdx())
+			if(i < m.getEndTokenIdx()-1)
 				sb.append(" ");
 		}
 		return sb.toString();
