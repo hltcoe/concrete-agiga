@@ -173,18 +173,14 @@ public class ConcreteToStanfordConverter {
         }
         Communication communication;
         while ((communication = Communication.parseDelimitedFrom(is)) != null) {
-            for (SectionSegmentation sectionSegmentation : communication
-                    .getSectionSegmentationList()) {
+            for (SectionSegmentation sectionSegmentation : communication.getSectionSegmentationList()) {
                 for (Section section : sectionSegmentation.getSectionList()) {
-                    for (SentenceSegmentation sentSegmentation : section
-                            .getSentenceSegmentationList()) {
+                    for (SentenceSegmentation sentSegmentation : section.getSentenceSegmentationList()) {
                         for (Sentence sent : sentSegmentation.getSentenceList()) {
                             int i;
-                            ConcreteToStanfordConverter scs = new ConcreteToStanfordConverter(
-                                    sent);
+                            ConcreteToStanfordConverter scs = new ConcreteToStanfordConverter(sent);
                             i = 0;
-                            for (WordLemmaTag tok : scs
-                                    .getStanfordWordLemmaTags()) {
+                            for (WordLemmaTag tok : scs.getStanfordWordLemmaTags()) {
                                 if (i++ > 0) {
                                     System.out.print(" ");
                                 }
@@ -192,8 +188,7 @@ public class ConcreteToStanfordConverter {
                             }
                             System.out.println("");
                             i = 0;
-                            for (TypedDependency td : scs
-                                    .getStanfordTypedDependencies(0)) {
+                            for (TypedDependency td : scs.getStanfordTypedDependencies(0)) {
                                 if (i++ > 0) {
                                     System.out.print(", ");
                                 }
