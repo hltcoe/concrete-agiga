@@ -31,11 +31,11 @@ import edu.stanford.nlp.trees.TypedDependency;
  * @author mgormley
  */
 public class ConcreteToStanfordConverter {
-	
-	public static final long serialVersionUID = 1;
+
+    public static final long serialVersionUID = 1;
 
     private static final Label ROOT_LABEL = new WordLemmaTag("ROOT");
-    
+
     private List<TreeGraphNode> nodes = null;
     private Sentence sent;
 
@@ -44,14 +44,15 @@ public class ConcreteToStanfordConverter {
     private static final int DEFAULT_THEORY = 0;
 
     /**
-     * Constructs a StanfordConcreteSentence which uses the 0'th tokenization and POS tag theories.
+     * Constructs a StanfordConcreteSentence which uses the 0'th tokenization
+     * and POS tag theories.
      * 
      * @param sent The Concrete sentence.
      */
     public ConcreteToStanfordConverter(Sentence sent) {
         this(sent, DEFAULT_THEORY, DEFAULT_THEORY);
     }
-    
+
     /**
      * Constructs a StanfordConcreteSentence.
      * 
@@ -59,7 +60,8 @@ public class ConcreteToStanfordConverter {
      * @param tokenizationTheory The theory for the Tokenization.
      * @param posTagTheory The theory for the POS tagging.
      */
-    public ConcreteToStanfordConverter(Sentence sent, int tokenizationTheory, int posTagTheory) {
+    public ConcreteToStanfordConverter(Sentence sent, int tokenizationTheory,
+            int posTagTheory) {
         this.sent = sent;
         this.tokenizationTheory = tokenizationTheory;
         this.posTagTheory = posTagTheory;
@@ -77,56 +79,63 @@ public class ConcreteToStanfordConverter {
             TaggedToken postt = posTags.getTaggedToken(i);
             if (ct.getTokenId() != postt.getTokenId()) {
                 throw new IllegalStateException("Expected token ids to match");
-            }                        
+            }
             WordLemmaTag curToken;
-            // TODO: Where would the lemma live? curToken = new WordLemmaTag(ct.getText(), ct.getLemma(), ct.getPosTag());
+            // TODO: Where would the lemma live? curToken = new
+            // WordLemmaTag(ct.getText(), ct.getLemma(), ct.getPosTag());
             curToken = new WordLemmaTag(ct.getText(), postt.getTag());
             labels.add(curToken);
         }
         return labels;
     }
 
-    public List<TypedDependency> getStanfordTypedDependencies(int dependencyTheory) {
+    public List<TypedDependency> getStanfordTypedDependencies(
+            int dependencyTheory) {
         List<TypedDependency> dependencies = new ArrayList<TypedDependency>();
         if (this.nodes == null) {
-        	nodes = getStanfordTreeGraphNodes(dependencyTheory);
+            nodes = getStanfordTreeGraphNodes(dependencyTheory);
         }
 
         DependencyParse depParse = sent.getDependencyParse(dependencyTheory);
-        for (Dependency arc : depParse.getDependencyList()) {            
-            // Add one, since the tokens are zero-indexed but the TreeGraphNodes are one-indexed
+        for (Dependency arc : depParse.getDependencyList()) {
+            // Add one, since the tokens are zero-indexed but the TreeGraphNodes
+            // are one-indexed
             TreeGraphNode gov = nodes.get(arc.getGov().getTokenId() + 1);
             TreeGraphNode dep = nodes.get(arc.getDep().getTokenId() + 1);
             // Create the typed dependency
-            TypedDependency typedDep = new TypedDependency(GrammaticalRelation.valueOf(arc.getEdgeType()), gov, dep);
+            TypedDependency typedDep = new TypedDependency(
+                    GrammaticalRelation.valueOf(arc.getEdgeType()), gov, dep);
             dependencies.add(typedDep);
         }
         return dependencies;
     }
 
     public List<TreeGraphNode> getStanfordTreeGraphNodes(int dependencyTheory) {
-    	if (this.nodes != null) return this.nodes;
-    	
+        if (this.nodes != null)
+            return this.nodes;
+
         this.nodes = new ArrayList<TreeGraphNode>();
         // Add an explicit root node
         nodes.add(new TreeGraphNode(ROOT_LABEL));
-        
+
         List<WordLemmaTag> labels = getStanfordWordLemmaTags();
         for (WordLemmaTag curToken : labels) {
             // Create the tree node
             TreeGraphNode treeNode = new TreeGraphNode(curToken);
             treeNode.label().setTag(curToken.tag());
             /**
-             * Caution, the order to call is to first setWord(), then setlemma().
+             * Caution, the order to call is to first setWord(), then
+             * setlemma().
              */
             treeNode.label().setWord(curToken.word());
             treeNode.label().setLemma(curToken.lemma());
             nodes.add(treeNode);
         }
-        
+
         DependencyParse depParse = sent.getDependencyParse(dependencyTheory);
-        for (Dependency arc : depParse.getDependencyList()) {            
-            // Add one, since the tokens are zero-indexed but the TreeGraphNodes are one-indexed
+        for (Dependency arc : depParse.getDependencyList()) {
+            // Add one, since the tokens are zero-indexed but the TreeGraphNodes
+            // are one-indexed
             TreeGraphNode gov = nodes.get(arc.getGov().getTokenId() + 1);
             TreeGraphNode dep = nodes.get(arc.getDep().getTokenId() + 1);
 
@@ -140,7 +149,7 @@ public class ConcreteToStanfordConverter {
 
         return nodes;
     }
-    
+
     /**
      * Reads a Protocol Buffer file containing Commmunications, converts the
      * dependency trees to Stanford objects, and prints them out in a human
@@ -148,38 +157,44 @@ public class ConcreteToStanfordConverter {
      */
     public static void main(String[] args) throws IOException {
         if (args.length < 1) {
-            System.err.println("usage: java " + ConcreteToStanfordConverter.class + " <input file>");         
+            System.err.println("usage: java "
+                    + ConcreteToStanfordConverter.class + " <input file>");
             System.exit(1);
         }
         File inputFile = new File(args[0]);
         if (!inputFile.exists()) {
-            System.err.println("ERROR: File does not exist: " + inputFile);         
+            System.err.println("ERROR: File does not exist: " + inputFile);
             System.exit(1);
         }
-        
+
         InputStream is = new FileInputStream(inputFile);
         if (inputFile.getName().endsWith(".gz")) {
             is = new GZIPInputStream(is);
         }
         Communication communication;
         while ((communication = Communication.parseDelimitedFrom(is)) != null) {
-            for (SectionSegmentation sectionSegmentation : communication.getSectionSegmentationList()) {
+            for (SectionSegmentation sectionSegmentation : communication
+                    .getSectionSegmentationList()) {
                 for (Section section : sectionSegmentation.getSectionList()) {
-                    for (SentenceSegmentation sentSegmentation : section.getSentenceSegmentationList()) {
+                    for (SentenceSegmentation sentSegmentation : section
+                            .getSentenceSegmentationList()) {
                         for (Sentence sent : sentSegmentation.getSentenceList()) {
                             int i;
-                            ConcreteToStanfordConverter scs = new ConcreteToStanfordConverter(sent);
-                            i=0;
-                            for (WordLemmaTag tok : scs.getStanfordWordLemmaTags()) {
-                                if (i++>0) {
+                            ConcreteToStanfordConverter scs = new ConcreteToStanfordConverter(
+                                    sent);
+                            i = 0;
+                            for (WordLemmaTag tok : scs
+                                    .getStanfordWordLemmaTags()) {
+                                if (i++ > 0) {
                                     System.out.print(" ");
                                 }
                                 System.out.print(tok.word() + "/" + tok.tag());
-                            }                                
+                            }
                             System.out.println("");
-                            i=0;
-                            for (TypedDependency td : scs.getStanfordTypedDependencies(0)) {
-                                if (i++>0) {
+                            i = 0;
+                            for (TypedDependency td : scs
+                                    .getStanfordTypedDependencies(0)) {
+                                if (i++ > 0) {
                                     System.out.print(", ");
                                 }
                                 System.out.print(td.gov() + "-->" + td.dep()
@@ -194,5 +209,5 @@ public class ConcreteToStanfordConverter {
         }
         is.close();
     }
-    
+
 }
