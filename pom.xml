@@ -7,7 +7,7 @@
     <version>1.0.0</version>
   </parent>
 
-  <groupId>edu.jhu.hlt.concrete-agiga</groupId>
+  <groupId>edu.jhu.hlt.concrete</groupId>
   <artifactId>concrete-agiga</artifactId>
   <version>1.0.1-SNAPSHOT</version>
 
