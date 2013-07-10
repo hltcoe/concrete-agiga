@@ -5,7 +5,9 @@ import edu.jhu.hlt.concrete.Concrete.TokenTagging.TaggedToken;
 import edu.jhu.hlt.concrete.util.*;
 import edu.jhu.agiga.*;
 import edu.stanford.nlp.trees.*;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Calendar;
 import java.util.zip.GZIPOutputStream;
 import java.io.*;
 
@@ -13,7 +15,7 @@ class AgigaConverter {
 
 	public static final String toolName = "Annotated Gigaword Pipeline";
 	public static final String corpusName = "Annotated Gigaword";
-	public static final double annotationTime = Calendar.getInstance().getTimeInMillis() / 1000d;
+	public static final long annotationTime = Calendar.getInstance().getTimeInMillis() / 1000;
 
 	public static AnnotationMetadata metadata() { return metadata(null); }
 	public static AnnotationMetadata metadata(String addToToolName) {
@@ -42,10 +44,11 @@ class AgigaConverter {
 		return sb.toString().trim();
 	}
 
-	public static Parse stanford2concrete(Tree root, Tokenization tokenization) {
+	public static Parse stanford2concrete(Tree root, UUID tokenizationUUID) {
 		int[] nodeCounter = new int[]{0};
 		int left = 0;
 		int right = root.getLeaves().size();
+		/*
 		// this was a bug in stanford nlp;
 		// if you have a terminal with a space in it, like (CD 2 1/2)
 		// stanford's getLeaves() will return Trees for 2 and 1/2
@@ -60,10 +63,11 @@ class AgigaConverter {
 			System.out.println("make sure you have the newest version of agiga!");
 			throw new RuntimeException("Tokenization vs Parse error! Make sure you have the newest agiga");
 		}
+		*/
 		return Parse.newBuilder()
 			.setUuid(IdUtil.generateUUID())
 			.setMetadata(metadata(" http://www.aclweb.org/anthology-new/D/D10/D10-1002.pdf"))
-			.setRoot(s2cHelper(root, nodeCounter, left, right, tokenization))
+			.setRoot(s2cHelper(root, nodeCounter, left, right, tokenizationUUID))
 			.build();
 	}
 
@@ -71,12 +75,12 @@ class AgigaConverter {
 	 * i'm using int[] as a java hack for int* (pass by reference rather than value).
 	 */
 	private static final HeadFinder HEAD_FINDER = new SemanticHeadFinder();
-	private static Parse.Constituent.Builder s2cHelper(Tree root, int[] nodeCounter, int left, int right, Tokenization tokenization) {
+	private static Parse.Constituent.Builder s2cHelper(Tree root, int[] nodeCounter, int left, int right, UUID tokenizationUUID) {
 		assert(nodeCounter.length == 1);
 		Parse.Constituent.Builder cb = Parse.Constituent.newBuilder()
 			.setId(nodeCounter[0]++)
 			.setTag(root.value())
-			.setTokenSequence(extractTokenRefSequence(left, right, null, tokenization));
+			.setTokenSequence(extractTokenRefSequence(left, right, null, tokenizationUUID));
 
 		Tree headTree = root.isLeaf() ? null : HEAD_FINDER.determineHead(root);
 		int i = 0, headTreeIdx = -1;
@@ -84,7 +88,7 @@ class AgigaConverter {
 		int leftPtr = left;
 		for(Tree child : root.getChildrenAsList()) {
 			int width = child.getLeaves().size();
-			cb.addChild(s2cHelper(child, nodeCounter, leftPtr, leftPtr + width, tokenization));
+			cb.addChild(s2cHelper(child, nodeCounter, leftPtr, leftPtr + width, tokenizationUUID));
 			leftPtr += width;
 			if(headTree != null && child == headTree) {
 				assert(headTreeIdx < 0);
@@ -99,50 +103,36 @@ class AgigaConverter {
 		return cb;
 	}
 
-	public static TokenRefSequence extractTokenRefSequence(AgigaMention m, Tokenization tok) {
-		return extractTokenRefSequence(m.getStartTokenIdx(), m.getEndTokenIdx(), m.getHeadTokenIdx(), tok);
+	public static TokenRefSequence extractTokenRefSequence(AgigaMention m, UUID tokenizationUUID) {
+		return extractTokenRefSequence(m.getStartTokenIdx(), m.getEndTokenIdx(), m.getHeadTokenIdx(), tokenizationUUID);
 	}
-	public static TokenRefSequence extractTokenRefSequence(int left, int right, Integer head, Tokenization tokenization) {
-		assert(left < right && left >= 0 && right <= tokenization.getTokenList().size());
-		assert(tokenization.getKind() == Tokenization.Kind.TOKEN_LIST);
+	public static TokenRefSequence extractTokenRefSequence(int left, int right, Integer head, UUID tokenizationUUID) {
 		TokenRefSequence.Builder tb = TokenRefSequence.newBuilder()
-			.setTokenizationId(tokenization.getUuid());
-		for(int i=left; i<right; i++) {
-			int tid = tokenization.getToken(i).getTokenId();
-			tb.addTokenId(tid);
+			.setTokenizationId(tokenizationUUID);
+		for(int tid=left; tid<right; tid++) {
+			tb.addTokenIndex(tid);
 			if(head != null && head == tid) {
-				tb.setAnchorTokenId(tid);
+				tb.setAnchorTokenIndex(tid);
 			}
 		}
 		return tb.build();
 	}
 
-	public static TokenRef extractTokenRef(int index, Tokenization tokenization) {
-		assert(index >= 0);
-		assert(tokenization.getKind() == Tokenization.Kind.TOKEN_LIST);
-		int tokId = tokenization.getToken(index).getTokenId();
-		return TokenRef.newBuilder()
-			.setTokenId(tokId)
-			.setTokenizationId(tokenization.getUuid())
-			.build();
-	}
-
-
 	/**
 	 * name is the type of dependencies, e.g. "col-deps" or "col-ccproc-deps"
 	 */
-	public static DependencyParse convertDependencyParse(List<AgigaTypedDependency> deps, String name, Tokenization tokenization) {
+	public static DependencyParse convertDependencyParse(List<AgigaTypedDependency> deps, String name) {
 		DependencyParse.Builder db = DependencyParse.newBuilder()
 			.setUuid(IdUtil.generateUUID())
 			.setMetadata(metadata(" " + name + " http://nlp.stanford.edu/software/dependencies_manual.pdf"));
 		for(AgigaTypedDependency ad : deps) {
 			
 			DependencyParse.Dependency.Builder depB = DependencyParse.Dependency.newBuilder()
-				.setDep(extractTokenRef(ad.getDepIdx(), tokenization))
+				.setDep(ad.getDepIdx())
 				.setEdgeType(ad.getType());
 
 			if(ad.getGovIdx() >= 0)	// else ROOT
-				depB.setGov(extractTokenRef(ad.getGovIdx(), tokenization));
+				depB.setGov(ad.getGovIdx());
 
 			db.addDependency(depB.build());
 		}
@@ -167,8 +157,9 @@ class AgigaConverter {
 		//	.setUuid(IdUtil.generateUUID())
 		//	.setMetadata(metadata());
 
+		UUID tokenizationUUID = IdUtil.generateUUID();
 		Tokenization.Builder tb = Tokenization.newBuilder()
-			.setUuid(IdUtil.generateUUID())
+			.setUuid(tokenizationUUID)
 			.setMetadata(metadata(" http://nlp.stanford.edu/software/tokensregex.shtml"))
 			.setKind(Tokenization.Kind.TOKEN_LIST);
 		int charOffset = 0;
@@ -179,7 +170,7 @@ class AgigaConverter {
 
 			// token
 			tb.addToken(Token.newBuilder()
-				.setTokenId(curTokId)
+				.setTokenIndex(curTokId)
 				.setText(tok.getWord())
 				.setTextSpan(TextSpan.newBuilder()
 					.setStart(charOffset)
@@ -199,12 +190,16 @@ class AgigaConverter {
 			.addLemmas(lemmaBuilder.build())
 			.addPosTags(posBuilder.build())
 			.addNerTags(nerBuilder.build())
+			.addParse(stanford2concrete(sent.getStanfordContituencyTree(), tokenizationUUID))
+			.addDependencyParse(convertDependencyParse(sent.getBasicDeps(), "basic-deps"))
+			.addDependencyParse(convertDependencyParse(sent.getColDeps(), "col-deps"))
+			.addDependencyParse(convertDependencyParse(sent.getColCcprocDeps(), "col-ccproc-deps"))
 			.build();
 	}
 
 	public static TaggedToken makeTaggedToken(String tag, int tokId) {
 		return TaggedToken.newBuilder()
-			.setTokenId(tokId)
+			.setTokenIndex(tokId)
 			.setTag(tag)
 			.setConfidence(1f)
 			.build();
@@ -219,13 +214,7 @@ class AgigaConverter {
 				.setStart(charsFromStartOfCommunication)
 				.setEnd(charsFromStartOfCommunication + flattenText(sent).length())
 				.build())
-			// tokenization
 			.addTokenization(tokenization)
-			// parses
-			.addParse(stanford2concrete(sent.getStanfordContituencyTree(), tokenization))
-			.addDependencyParse(convertDependencyParse(sent.getBasicDeps(), "basic-deps", tokenization))
-			.addDependencyParse(convertDependencyParse(sent.getColDeps(), "col-deps", tokenization))
-			.addDependencyParse(convertDependencyParse(sent.getColCcprocDeps(), "col-ccproc-deps", tokenization))
 			.build();
 	}
 
@@ -247,6 +236,7 @@ class AgigaConverter {
 			.setMetadata(metadata())
 			.addSection(Section.newBuilder()
 				.setUuid(IdUtil.generateUUID())
+				.setKind(Section.Kind.OTHER)
 				.setTextSpan(TextSpan.newBuilder()
 					.setStart(0)
 					.setEnd(rawText.length())
@@ -267,6 +257,7 @@ class AgigaConverter {
 		return sb.toString();
 	}
 
+	/*
 	public static TextSpan mention2TextSpan(AgigaMention m, AgigaDocument doc) {
 		// count the number of chars from the start of the sentence
 		int start = 0;
@@ -290,21 +281,18 @@ class AgigaConverter {
 			.setEnd(end)
 			.build();
 	}
+	*/
 
 	public static EntityMention convertMention(AgigaMention m, AgigaDocument doc,
 			edu.jhu.hlt.concrete.Concrete.UUID corefSet, Tokenization tokenization) {
 		String mstring = extractMentionString(m, doc);
 		return EntityMention.newBuilder()
 			.setUuid(IdUtil.generateUUID())
-			.setTokens(extractTokenRefSequence(m, tokenization))
+			.setTokens(extractTokenRefSequence(m, tokenization.getUuid()))
 			.setEntityType(Entity.Type.UNKNOWN)
 			.setPhraseType(EntityMention.PhraseType.NAME)	// TODO warn users that this may not be accurate
 			.setConfidence(1f)
 			.setText(mstring)		// TODO merge this an method below
-			.setTextSpan(mention2TextSpan(m, doc))
-			.setCorefId(corefSet)
-			.setSentenceIndex(m.getSentenceIdx())
-			.setHeadIndex(m.getHeadTokenIdx())
 			.build();
 	}
 
@@ -326,10 +314,7 @@ class AgigaConverter {
 		return entBuilder.build();
 	}
 
-	private static final ProtoFactory pf = new ProtoFactory(9001);
-
 	public static Communication convertDoc(AgigaDocument doc) {
-		KnowledgeGraph kg = new ProtoFactory(9001).generateKnowledgeGraph();
 		CommunicationGUID guid = CommunicationGUID.newBuilder()
 			.setCorpusName(corpusName)
 			.setCommunicationId(doc.getDocId())
@@ -341,8 +326,7 @@ class AgigaConverter {
 			.setGuid(guid)
 			.setText(flatText)
 			.addSectionSegmentation(sectionSegment(doc, flatText, toks))
-			.setKind(Communication.Kind.NEWS)
-			.setKnowledgeGraph(kg);
+			.setKind(Communication.Kind.NEWS);
 		// this must occur last so that the tokenizations have been added to toks
 		EntityMentionSet.Builder emsb = EntityMentionSet.newBuilder()
 			.setUuid(IdUtil.generateUUID())
@@ -357,7 +341,6 @@ class AgigaConverter {
 		cb.addEntityMentionSet(emsb);
 		cb.addEntitySet(esb);
 		cb.setUuid(IdUtil.generateUUID());
-		cb.setKnowledgeGraph(pf.generateMockKnowledgeGraph());
 		return cb.build();
 	}
 
