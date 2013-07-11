@@ -77,7 +77,7 @@ public class ConcreteToStanfordConverter {
         for (int i = 0; i < tokens.getTokenCount(); i++) {
             Token ct = tokens.getToken(i);
             TaggedToken postt = posTags.getTaggedToken(i);
-            if (ct.getTokenId() != postt.getTokenId()) {
+            if (ct.getTokenIndex() != postt.getTokenIndex()) {
                 throw new IllegalStateException("Expected token ids to match");
             }
             WordLemmaTag curToken;
@@ -96,12 +96,13 @@ public class ConcreteToStanfordConverter {
             nodes = getStanfordTreeGraphNodes(dependencyTheory);
         }
 
-        DependencyParse depParse = sent.getDependencyParse(dependencyTheory);
+        Tokenization tok = sent.getTokenization(0);
+        DependencyParse depParse = tok.getDependencyParse(dependencyTheory);
         for (Dependency arc : depParse.getDependencyList()) {
             // Add one, since the tokens are zero-indexed but the TreeGraphNodes
             // are one-indexed
-            TreeGraphNode gov = nodes.get(arc.getGov().getTokenId() + 1);
-            TreeGraphNode dep = nodes.get(arc.getDep().getTokenId() + 1);
+            TreeGraphNode gov = nodes.get(arc.getGov() + 1);
+            TreeGraphNode dep = nodes.get(arc.getDep() + 1);
             // Create the typed dependency
             TypedDependency typedDep = new TypedDependency(
                     GrammaticalRelation.valueOf(arc.getEdgeType()), gov, dep);
@@ -132,12 +133,13 @@ public class ConcreteToStanfordConverter {
             nodes.add(treeNode);
         }
 
-        DependencyParse depParse = sent.getDependencyParse(dependencyTheory);
+        final Tokenization tok = sent.getTokenization(0);
+        DependencyParse depParse = tok.getDependencyParse(dependencyTheory);
         for (Dependency arc : depParse.getDependencyList()) {
             // Add one, since the tokens are zero-indexed but the TreeGraphNodes
             // are one-indexed
-            TreeGraphNode gov = nodes.get(arc.getGov().getTokenId() + 1);
-            TreeGraphNode dep = nodes.get(arc.getDep().getTokenId() + 1);
+            TreeGraphNode gov = nodes.get(arc.getGov() + 1);
+            TreeGraphNode dep = nodes.get(arc.getDep() + 1);
 
             // Add gov/dep to TreeGraph
             gov.addChild(dep);

@@ -13,7 +13,7 @@ class AgigaConverter {
 
 	public static final String toolName = "Annotated Gigaword Pipeline";
 	public static final String corpusName = "Annotated Gigaword";
-	public static final double annotationTime = Calendar.getInstance().getTimeInMillis() / 1000d;
+	public static final long annotationTime = System.currentTimeMillis() / 1000;
 
 	public static AnnotationMetadata metadata() { return metadata(null); }
 	public static AnnotationMetadata metadata(String addToToolName) {
@@ -108,10 +108,10 @@ class AgigaConverter {
 		TokenRefSequence.Builder tb = TokenRefSequence.newBuilder()
 			.setTokenizationId(tokenization.getUuid());
 		for(int i=left; i<right; i++) {
-			int tid = tokenization.getToken(i).getTokenId();
-			tb.addTokenId(tid);
+			int tid = tokenization.getToken(i).getTokenIndex();
+			tb.addTokenIndex(tid);
 			if(head != null && head == tid) {
-				tb.setAnchorTokenId(tid);
+				tb.setAnchorTokenIndex(tid);
 			}
 		}
 		return tb.build();
@@ -120,9 +120,9 @@ class AgigaConverter {
 	public static TokenRef extractTokenRef(int index, Tokenization tokenization) {
 		assert(index >= 0);
 		assert(tokenization.getKind() == Tokenization.Kind.TOKEN_LIST);
-		int tokId = tokenization.getToken(index).getTokenId();
+		int tokId = tokenization.getToken(index).getTokenIndex();
 		return TokenRef.newBuilder()
-			.setTokenId(tokId)
+			.setTokenIndex(tokId)
 			.setTokenizationId(tokenization.getUuid())
 			.build();
 	}
@@ -138,11 +138,11 @@ class AgigaConverter {
 		for(AgigaTypedDependency ad : deps) {
 			
 			DependencyParse.Dependency.Builder depB = DependencyParse.Dependency.newBuilder()
-				.setDep(extractTokenRef(ad.getDepIdx(), tokenization))
+				.setDep(extractTokenRef(ad.getDepIdx(), tokenization).getTokenIndex())
 				.setEdgeType(ad.getType());
 
 			if(ad.getGovIdx() >= 0)	// else ROOT
-				depB.setGov(extractTokenRef(ad.getGovIdx(), tokenization));
+				depB.setGov(extractTokenRef(ad.getGovIdx(), tokenization).getTokenIndex());
 
 			db.addDependency(depB.build());
 		}
@@ -179,7 +179,7 @@ class AgigaConverter {
 
 			// token
 			tb.addToken(Token.newBuilder()
-				.setTokenId(curTokId)
+				.setTokenIndex(curTokId)
 				.setText(tok.getWord())
 				.setTextSpan(TextSpan.newBuilder()
 					.setStart(charOffset)
@@ -204,7 +204,7 @@ class AgigaConverter {
 
 	public static TaggedToken makeTaggedToken(String tag, int tokId) {
 		return TaggedToken.newBuilder()
-			.setTokenId(tokId)
+			.setTokenIndex(tokId)
 			.setTag(tag)
 			.setConfidence(1f)
 			.build();
@@ -213,6 +213,19 @@ class AgigaConverter {
 	public static Sentence convertSentence(AgigaSentence sent, int charsFromStartOfCommunication, List<Tokenization> addTo) {
 		Tokenization tokenization = convertTokenization(sent);
 		addTo.add(tokenization);	// one tokenization per sentence
+		
+		// Handle parses at this [tokenization] level, instead of
+		// the sentence level, in protobuf 1.1.2.
+		Parse parseToAdd = stanford2concrete(sent.getStanfordContituencyTree(), tokenization);
+		DependencyParse basicDepParse = convertDependencyParse(sent.getBasicDeps(), "basic-deps", tokenization);
+		DependencyParse colDepsParse = convertDependencyParse(sent.getColDeps(), "col-deps", tokenization);
+		DependencyParse colCcprocDepsParse = convertDependencyParse(sent.getColCcprocDeps(), "col-ccproc-deps", tokenization);
+		Tokenization newTok = Tokenization.newBuilder(tokenization)
+		        .addParse(parseToAdd)
+		        .addDependencyParse(basicDepParse)
+		        .addDependencyParse(colDepsParse)
+		        .addDependencyParse(colCcprocDepsParse)
+		        .build();
 		return Sentence.newBuilder()
 			.setUuid(IdUtil.generateUUID())
 			.setTextSpan(TextSpan.newBuilder()
@@ -220,12 +233,7 @@ class AgigaConverter {
 				.setEnd(charsFromStartOfCommunication + flattenText(sent).length())
 				.build())
 			// tokenization
-			.addTokenization(tokenization)
-			// parses
-			.addParse(stanford2concrete(sent.getStanfordContituencyTree(), tokenization))
-			.addDependencyParse(convertDependencyParse(sent.getBasicDeps(), "basic-deps", tokenization))
-			.addDependencyParse(convertDependencyParse(sent.getColDeps(), "col-deps", tokenization))
-			.addDependencyParse(convertDependencyParse(sent.getColCcprocDeps(), "col-ccproc-deps", tokenization))
+			.addTokenization(newTok)
 			.build();
 	}
 
@@ -294,6 +302,11 @@ class AgigaConverter {
 	public static EntityMention convertMention(AgigaMention m, AgigaDocument doc,
 			edu.jhu.hlt.concrete.Concrete.UUID corefSet, Tokenization tokenization) {
 		String mstring = extractMentionString(m, doc);
+		// EntityMention lost the following in concrete 1.1.2:
+                // corefId
+                // sentence head
+                // head index
+                // These may need to be added elsewhere. 
 		return EntityMention.newBuilder()
 			.setUuid(IdUtil.generateUUID())
 			.setTokens(extractTokenRefSequence(m, tokenization))
@@ -301,10 +314,10 @@ class AgigaConverter {
 			.setPhraseType(EntityMention.PhraseType.NAME)	// TODO warn users that this may not be accurate
 			.setConfidence(1f)
 			.setText(mstring)		// TODO merge this an method below
-			.setTextSpan(mention2TextSpan(m, doc))
-			.setCorefId(corefSet)
-			.setSentenceIndex(m.getSentenceIdx())
-			.setHeadIndex(m.getHeadTokenIdx())
+			//.setTextSpan(mention2TextSpan(m, doc))
+			//.setCorefId(corefSet)
+			//.setSentenceIndex(m.getSentenceIdx())
+			//.setHeadIndex(m.getHeadTokenIdx())
 			.build();
 	}
 
@@ -313,9 +326,10 @@ class AgigaConverter {
 	 * creates and returns an Entity
 	 */
 	public static Entity convertCoref(EntityMentionSet.Builder emsb, AgigaCoref coref, AgigaDocument doc, List<Tokenization> toks) {
-		EntityMentionSet.Builder eb = EntityMentionSet.newBuilder()
-			.setUuid(IdUtil.generateUUID())
-			.setMetadata(metadata(" http://nlp.stanford.edu/pubs/conllst2011-coref.pdf"));
+		//EntityMentionSet.Builder eb = EntityMentionSet.newBuilder()
+		//	.setUuid(IdUtil.generateUUID())
+	        // Assuming this is meant for the passed in EntityMentionSet? The above is never used. 
+                emsb.setMetadata(metadata("http://nlp.stanford.edu/pubs/conllst2011-coref.pdf"));
 		Entity.Builder entBuilder = Entity.newBuilder()
 			.setUuid(IdUtil.generateUUID());
 		for(AgigaMention m : coref.getMentions()) {
@@ -329,7 +343,6 @@ class AgigaConverter {
 	private static final ProtoFactory pf = new ProtoFactory(9001);
 
 	public static Communication convertDoc(AgigaDocument doc) {
-		KnowledgeGraph kg = new ProtoFactory(9001).generateKnowledgeGraph();
 		CommunicationGUID guid = CommunicationGUID.newBuilder()
 			.setCorpusName(corpusName)
 			.setCommunicationId(doc.getDocId())
@@ -341,8 +354,7 @@ class AgigaConverter {
 			.setGuid(guid)
 			.setText(flatText)
 			.addSectionSegmentation(sectionSegment(doc, flatText, toks))
-			.setKind(Communication.Kind.NEWS)
-			.setKnowledgeGraph(kg);
+			.setKind(Communication.Kind.NEWS);
 		// this must occur last so that the tokenizations have been added to toks
 		EntityMentionSet.Builder emsb = EntityMentionSet.newBuilder()
 			.setUuid(IdUtil.generateUUID())
@@ -357,7 +369,6 @@ class AgigaConverter {
 		cb.addEntityMentionSet(emsb);
 		cb.addEntitySet(esb);
 		cb.setUuid(IdUtil.generateUUID());
-		cb.setKnowledgeGraph(pf.generateMockKnowledgeGraph());
 		return cb.build();
 	}
 
