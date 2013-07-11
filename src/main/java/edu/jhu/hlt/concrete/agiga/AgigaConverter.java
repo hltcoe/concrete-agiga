@@ -310,7 +310,7 @@ public class AgigaConverter {
 			.setEntityType(Entity.Type.UNKNOWN)
 			.setPhraseType(EntityMention.PhraseType.NAME)	// TODO warn users that this may not be accurate
 			.setConfidence(1f)
-			.setText(mstring)
+			.setText(mstring)		// TODO merge this an method below
 			.build();
 	}
 
@@ -359,6 +359,7 @@ public class AgigaConverter {
 		}
 		cb.addEntityMentionSet(emsb);
 		cb.addEntitySet(esb);
+		cb.setUuid(IdUtil.generateUUID());
 		return cb.build();
 	}
 
