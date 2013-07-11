@@ -11,7 +11,7 @@ import java.util.Calendar;
 import java.util.zip.GZIPOutputStream;
 import java.io.*;
 
-public class AgigaConverter {
+class AgigaConverter {
 
 	public static final String toolName = "Annotated Gigaword Pipeline";
 	public static final String corpusName = "Annotated Gigaword";
@@ -208,19 +208,6 @@ public class AgigaConverter {
 	public static Sentence convertSentence(AgigaSentence sent, int charsFromStartOfCommunication, List<Tokenization> addTo) {
 		Tokenization tokenization = convertTokenization(sent);
 		addTo.add(tokenization);	// one tokenization per sentence
-		
-		// Handle parses at this [tokenization] level, instead of
-		// the sentence level, in protobuf 1.1.2.
-		Parse parseToAdd = stanford2concrete(sent.getStanfordContituencyTree(), tokenization);
-		DependencyParse basicDepParse = convertDependencyParse(sent.getBasicDeps(), "basic-deps", tokenization);
-		DependencyParse colDepsParse = convertDependencyParse(sent.getColDeps(), "col-deps", tokenization);
-		DependencyParse colCcprocDepsParse = convertDependencyParse(sent.getColCcprocDeps(), "col-ccproc-deps", tokenization);
-		Tokenization newTok = Tokenization.newBuilder(tokenization)
-		        .addParse(parseToAdd)
-		        .addDependencyParse(basicDepParse)
-		        .addDependencyParse(colDepsParse)
-		        .addDependencyParse(colCcprocDepsParse)
-		        .build();
 		return Sentence.newBuilder()
 			.setUuid(IdUtil.generateUUID())
 			.setTextSpan(TextSpan.newBuilder()
@@ -299,11 +286,6 @@ public class AgigaConverter {
 	public static EntityMention convertMention(AgigaMention m, AgigaDocument doc,
 			edu.jhu.hlt.concrete.Concrete.UUID corefSet, Tokenization tokenization) {
 		String mstring = extractMentionString(m, doc);
-		// EntityMention lost the following in concrete 1.1.2:
-                // corefId
-                // sentence head
-                // head index
-                // These may need to be added elsewhere. 
 		return EntityMention.newBuilder()
 			.setUuid(IdUtil.generateUUID())
 			.setTokens(extractTokenRefSequence(m, tokenization.getUuid()))
@@ -319,10 +301,9 @@ public class AgigaConverter {
 	 * creates and returns an Entity
 	 */
 	public static Entity convertCoref(EntityMentionSet.Builder emsb, AgigaCoref coref, AgigaDocument doc, List<Tokenization> toks) {
-		//EntityMentionSet.Builder eb = EntityMentionSet.newBuilder()
-		//	.setUuid(IdUtil.generateUUID())
-	        // Assuming this is meant for the passed in EntityMentionSet? The above is never used. 
-                emsb.setMetadata(metadata("http://nlp.stanford.edu/pubs/conllst2011-coref.pdf"));
+		EntityMentionSet.Builder eb = EntityMentionSet.newBuilder()
+			.setUuid(IdUtil.generateUUID())
+			.setMetadata(metadata(" http://nlp.stanford.edu/pubs/conllst2011-coref.pdf"));
 		Entity.Builder entBuilder = Entity.newBuilder()
 			.setUuid(IdUtil.generateUUID());
 		for(AgigaMention m : coref.getMentions()) {

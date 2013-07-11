@@ -136,7 +136,7 @@ public class ConcreteToStanfordConverter {
             nodes.add(treeNode);
         }
 
-		final Tokenization tok = sent.getTokenization(tokenizationTheory);
+		Tokenization tok = sent.getTokenization(tokenizationTheory);
         DependencyParse depParse = tok.getDependencyParse(dependencyTheory);
         for (Dependency arc : depParse.getDependencyList()) {
             // Add one, since the tokens are zero-indexed but the TreeGraphNodes
