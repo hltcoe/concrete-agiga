@@ -11,7 +11,7 @@ import java.util.Calendar;
 import java.util.zip.GZIPOutputStream;
 import java.io.*;
 
-class AgigaConverter {
+public class AgigaConverter {
 
 	public static final String toolName = "Annotated Gigaword Pipeline";
 	public static final String corpusName = "Annotated Gigaword";
@@ -256,32 +256,6 @@ class AgigaConverter {
 		}
 		return sb.toString();
 	}
-
-	/*
-	public static TextSpan mention2TextSpan(AgigaMention m, AgigaDocument doc) {
-		// count the number of chars from the start of the sentence
-		int start = 0;
-		int end = 0;
-		List<AgigaToken> sentence = doc.getSents().get(m.getSentenceIdx()).getTokens();
-		StringBuilder sb = new StringBuilder();
-		for(int i=0; i<m.getEndTokenIdx(); i++) {
-			int len = sentence.get(i).getWord().length();
-			if(i < m.getStartTokenIdx())
-				start += len;
-			end += len;
-			
-			// spaces between words
-			if(i > m.getStartTokenIdx())	{
-				start++;
-				end++;
-			}
-		}
-		return TextSpan.newBuilder()
-			.setStart(start)
-			.setEnd(end)
-			.build();
-	}
-	*/
 
 	public static EntityMention convertMention(AgigaMention m, AgigaDocument doc,
 			edu.jhu.hlt.concrete.Concrete.UUID corefSet, Tokenization tokenization) {
