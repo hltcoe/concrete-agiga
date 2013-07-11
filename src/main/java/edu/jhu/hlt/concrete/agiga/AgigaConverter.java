@@ -275,9 +275,6 @@ public class AgigaConverter {
 	 * creates and returns an Entity
 	 */
 	public static Entity convertCoref(EntityMentionSet.Builder emsb, AgigaCoref coref, AgigaDocument doc, List<Tokenization> toks) {
-		EntityMentionSet.Builder eb = EntityMentionSet.newBuilder()
-			.setUuid(IdUtil.generateUUID())
-			.setMetadata(metadata(" http://nlp.stanford.edu/pubs/conllst2011-coref.pdf"));
 		Entity.Builder entBuilder = Entity.newBuilder()
 			.setUuid(IdUtil.generateUUID());
 		for(AgigaMention m : coref.getMentions()) {
@@ -304,10 +301,10 @@ public class AgigaConverter {
 		// this must occur last so that the tokenizations have been added to toks
 		EntityMentionSet.Builder emsb = EntityMentionSet.newBuilder()
 			.setUuid(IdUtil.generateUUID())
-			.setMetadata(metadata());
+			.setMetadata(metadata(" http://nlp.stanford.edu/pubs/conllst2011-coref.pdf"));
 		EntitySet.Builder esb = EntitySet.newBuilder()
 			.setUuid(IdUtil.generateUUID())
-			.setMetadata(metadata());
+			.setMetadata(metadata(" http://nlp.stanford.edu/pubs/conllst2011-coref.pdf"));
 		for(AgigaCoref coref : doc.getCorefs()) {
 			Entity e = convertCoref(emsb, coref, doc, toks);
 			esb.addEntity(e);
