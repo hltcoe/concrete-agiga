@@ -9,7 +9,7 @@ import java.util.*;
 import java.util.zip.GZIPOutputStream;
 import java.io.*;
 
-class AgigaConverter {
+public class AgigaConverter {
 
 	public static final String toolName = "Annotated Gigaword Pipeline";
 	public static final String corpusName = "Annotated Gigaword";
