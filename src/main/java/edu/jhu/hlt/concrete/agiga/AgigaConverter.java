@@ -3,6 +3,7 @@ package edu.jhu.hlt.concrete.agiga;
 import edu.jhu.hlt.concrete.Concrete.*;
 import edu.jhu.hlt.concrete.Concrete.TokenTagging.TaggedToken;
 import edu.jhu.hlt.concrete.util.*;
+import edu.jhu.hlt.concrete.io.ProtocolBufferWriter;
 import edu.jhu.agiga.*;
 import edu.stanford.nlp.trees.*;
 import java.util.ArrayList;
@@ -325,11 +326,15 @@ public class AgigaConverter {
 		}
 		long start = System.currentTimeMillis();
 		File output = new File(args[args.length-1]);
-
-		BufferedOutputStream writer = new BufferedOutputStream(
+		ProtocolBufferWriter pbr = new ProtocolBufferWriter(
 			output.getName().toLowerCase().endsWith("gz")
 			? new GZIPOutputStream(new FileOutputStream(output))
 			: new FileOutputStream(output));
+
+		//BufferedOutputStream writer = new BufferedOutputStream(
+		//	output.getName().toLowerCase().endsWith("gz")
+		//	? new GZIPOutputStream(new FileOutputStream(output))
+		//	: new FileOutputStream(output));
 
 		int c = 0;
 		int step = 250;
@@ -339,7 +344,8 @@ public class AgigaConverter {
 			System.out.println("reading from " + agigaXML.getPath());
 			for(AgigaDocument doc : docReader) {
 				Communication comm = convertDoc(doc);
-				comm.writeDelimitedTo(writer);
+				//comm.writeDelimitedTo(writer);
+				pbr.write(comm);
 				c++;
 				if(c % step == 0) {
 					System.out.printf("wrote %d documents in %.1f sec\n",
@@ -347,7 +353,8 @@ public class AgigaConverter {
 				}
 			}
 		}
-		writer.close();
+		//writer.close();
+		pbr.close();
 		System.out.printf("done, wrote %d communications to %s in %.1f seconds\n",
 			c, output.getPath(), (System.currentTimeMillis() - start)/1000d);
 	}
