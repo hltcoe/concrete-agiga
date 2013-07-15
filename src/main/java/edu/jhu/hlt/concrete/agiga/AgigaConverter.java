@@ -237,7 +237,7 @@ public class AgigaConverter {
 			.setMetadata(metadata())
 			.addSection(Section.newBuilder()
 				.setUuid(IdUtil.generateUUID())
-				.setKind(Section.Kind.OTHER)
+				.setKind(Section.Kind.PASSAGE)
 				.setTextSpan(TextSpan.newBuilder()
 					.setStart(0)
 					.setEnd(rawText.length())
