@@ -9,7 +9,7 @@
 
   <groupId>edu.jhu.hlt.concrete</groupId>
   <artifactId>concrete-agiga</artifactId>
-  <version>1.0.2-SNAPSHOT</version>
+  <version>1.0.3-SNAPSHOT</version>
 
   <name>Concrete - Agiga Converter</name>
 
@@ -133,12 +133,12 @@
     <dependency>
       <groupId>edu.jhu.hlt.concrete</groupId>
       <artifactId>concrete-java</artifactId>
-      <version>1.1.6</version>
+      <version>1.1.8</version>
     </dependency>
     <dependency>
       <groupId>edu.jhu.hlt.concrete</groupId>
       <artifactId>concrete-protobufs</artifactId>
-      <version>1.1.6</version>
+      <version>1.1.8</version>
     </dependency>
     <dependency> 
       <groupId>ch.qos.logback</groupId>
