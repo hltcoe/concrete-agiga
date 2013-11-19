@@ -1,11 +1,20 @@
 package edu.jhu.hlt.concrete.agiga;
 
-import edu.jhu.hlt.concrete.Concrete.*;
-import edu.jhu.hlt.concrete.Concrete.TokenTagging.TaggedToken;
-import edu.jhu.hlt.concrete.util.*;
-import edu.jhu.hlt.concrete.io.ProtocolBufferWriter;
 import edu.jhu.agiga.*;
+import edu.jhu.hlt.concrete.AnnotationMetadata;
+import edu.jhu.hlt.concrete.DependencyParse;
+import edu.jhu.hlt.concrete.Parse;
+import edu.jhu.hlt.concrete.SectionSegmentation;
+import edu.jhu.hlt.concrete.Sentence;
+import edu.jhu.hlt.concrete.SentenceSegmentation;
+import edu.jhu.hlt.concrete.TaggedToken;
+import edu.jhu.hlt.concrete.TextSpan;
+import edu.jhu.hlt.concrete.TokenRefSequence;
+import edu.jhu.hlt.concrete.TokenTagging;
+import edu.jhu.hlt.concrete.Tokenization;
+import edu.jhu.hlt.concrete.UUID;
 import edu.stanford.nlp.trees.*;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Calendar;
@@ -22,11 +31,12 @@ public class AgigaConverter {
 	public static AnnotationMetadata metadata(String addToToolName) {
 		String fullToolName = toolName;
 		if(addToToolName != null) fullToolName += addToToolName;
-		return AnnotationMetadata.newBuilder()
-			.setTool(fullToolName)
-			.setTimestamp(annotationTime)
-			.setConfidence(1f)
-			.build();
+		
+		AnnotationMetadata md = new AnnotationMetadata();
+		md.tool = fullToolName;
+		md.timestamp = annotationTime;
+		md.confidence = 1f;
+		return md;
 	}
 
 	public static String flattenText(AgigaDocument doc) {
