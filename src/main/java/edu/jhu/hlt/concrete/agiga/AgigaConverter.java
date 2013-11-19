@@ -75,6 +75,8 @@ public class AgigaConverter {
 			throw new RuntimeException("Tokenization vs Parse error! Make sure you have the newest agiga");
 		}
 		*/
+		Parse p = new Parse();
+		p.uuid = 
 		return Parse.newBuilder()
 			.setUuid(IdUtil.generateUUID())
 			.setMetadata(metadata(" http://www.aclweb.org/anthology-new/D/D10/D10-1002.pdf"))
