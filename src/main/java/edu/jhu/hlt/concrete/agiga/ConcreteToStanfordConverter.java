@@ -8,6 +8,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.GZIPInputStream;
 
+import org.apache.thrift.TDeserializer;
+import org.apache.thrift.protocol.TBinaryProtocol;
+import org.apache.thrift.protocol.TJSONProtocol;
+import org.apache.thrift.transport.TFileTransport;
+
+import edu.jhu.hlt.concrete.Communication;
 import edu.jhu.hlt.concrete.Dependency;
 import edu.jhu.hlt.concrete.DependencyParse;
 import edu.jhu.hlt.concrete.Section;
@@ -70,12 +76,14 @@ public class ConcreteToStanfordConverter {
     // the WordLemmaTag label in converting it to a CoreLabel. Accordingly
     // we allow access to the labels here as well.
     public List<WordLemmaTag> getStanfordWordLemmaTags() {
-        Tokenization tokens = sent.getTokenization(tokenizationTheory);
-        TokenTagging posTags = tokens.getPosTags(posTagTheory);
+        Tokenization tokens = sent.getTokenization();
+        TokenTagging posTags = tokens.getPosTagList();
         List<WordLemmaTag> labels = new ArrayList<WordLemmaTag>();
-        for (int i = 0; i < tokens.getTokenCount(); i++) {
-            Token ct = tokens.getToken(i);
-            TaggedToken postt = posTags.getTaggedToken(i);
+        List<Token> tokenList = tokens.getTokenList();
+        List<TaggedToken> ttList = posTags.getTaggedTokenList();
+        for (int i = 0; i < tokens.getTokenListSize(); i++) {
+            Token ct = tokenList.get(i);
+            TaggedToken postt = ttList.get(i);
             if (ct.getTokenIndex() != postt.getTokenIndex()) {
                 throw new IllegalStateException("Expected token ids to match");
             }
@@ -96,8 +104,8 @@ public class ConcreteToStanfordConverter {
             nodes = getStanfordTreeGraphNodes(tokenizationTheory, dependencyTheory);
         }
 
-		Tokenization tok = sent.getTokenization(tokenizationTheory);
-        DependencyParse depParse = tok.getDependencyParse(dependencyTheory);
+		Tokenization tok = sent.getTokenization();
+        DependencyParse depParse = tok.getDependencyParseList().get(dependencyTheory);
         for (Dependency arc : depParse.getDependencyList()) {
             // Add one, since the tokens are zero-indexed but the TreeGraphNodes
             // are one-indexed
@@ -135,8 +143,8 @@ public class ConcreteToStanfordConverter {
             nodes.add(treeNode);
         }
 
-		Tokenization tok = sent.getTokenization(tokenizationTheory);
-        DependencyParse depParse = tok.getDependencyParse(dependencyTheory);
+		Tokenization tok = sent.getTokenization();
+        DependencyParse depParse = tok.getDependencyParseList().get(dependencyTheory);
         for (Dependency arc : depParse.getDependencyList()) {
             // Add one, since the tokens are zero-indexed but the TreeGraphNodes
             // are one-indexed
@@ -175,37 +183,41 @@ public class ConcreteToStanfordConverter {
         if (inputFile.getName().endsWith(".gz")) {
             is = new GZIPInputStream(is);
         }
-        Communication communication;
-        while ((communication = Communication.parseDelimitedFrom(is)) != null) {
-            for (SectionSegmentation sectionSegmentation : communication.getSectionSegmentationList()) {
-                for (Section section : sectionSegmentation.getSectionList()) {
-                    for (SentenceSegmentation sentSegmentation : section.getSentenceSegmentationList()) {
-                        for (Sentence sent : sentSegmentation.getSentenceList()) {
-                            int i;
-                            ConcreteToStanfordConverter scs = new ConcreteToStanfordConverter(sent);
-                            i = 0;
-                            for (WordLemmaTag tok : scs.getStanfordWordLemmaTags()) {
-                                if (i++ > 0) {
-                                    System.out.print(" ");
-                                }
-                                System.out.print(tok.word() + "/" + tok.tag());
-                            }
-                            System.out.println("");
-                            i = 0;
-                            for (TypedDependency td : scs.getStanfordTypedDependencies(0, 0)) {
-                                if (i++ > 0) {
-                                    System.out.print(", ");
-                                }
-                                System.out.print(td.gov() + "-->" + td.dep()
-                                        + "/" + td.reln());
-                            }
-                            System.out.println("");
-                            System.out.println("");
-                        }
-                    }
-                }
-            }
-        }
+        
+        TDeserializer deserializer = new TDeserializer(new TBinaryProtocol.Factory());
+        TFileTransport tf = new TFileTransport(args[0], true);
+//        
+//        Communication communication;
+//        while ((communication = Communication.parseDelimitedFrom(is)) != null) {
+//            for (SectionSegmentation sectionSegmentation : communication.getSectionSegmentationList()) {
+//                for (Section section : sectionSegmentation.getSectionList()) {
+//                    for (SentenceSegmentation sentSegmentation : section.getSentenceSegmentationList()) {
+//                        for (Sentence sent : sentSegmentation.getSentenceList()) {
+//                            int i;
+//                            ConcreteToStanfordConverter scs = new ConcreteToStanfordConverter(sent);
+//                            i = 0;
+//                            for (WordLemmaTag tok : scs.getStanfordWordLemmaTags()) {
+//                                if (i++ > 0) {
+//                                    System.out.print(" ");
+//                                }
+//                                System.out.print(tok.word() + "/" + tok.tag());
+//                            }
+//                            System.out.println("");
+//                            i = 0;
+//                            for (TypedDependency td : scs.getStanfordTypedDependencies(0, 0)) {
+//                                if (i++ > 0) {
+//                                    System.out.print(", ");
+//                                }
+//                                System.out.print(td.gov() + "-->" + td.dep()
+//                                        + "/" + td.reln());
+//                            }
+//                            System.out.println("");
+//                            System.out.println("");
+//                        }
+//                    }
+//                }
+//            }
+//        }
         is.close();
     }
 

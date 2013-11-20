@@ -41,6 +41,9 @@ import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.protocol.TProtocolFactory;
+import org.apache.thrift.transport.TFileTransport;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class AgigaConverter {
 
@@ -48,6 +51,9 @@ public class AgigaConverter {
 	public static final String corpusName = "Annotated Gigaword";
 	public static final long annotationTime = Calendar.getInstance().getTimeInMillis() / 1000;
 
+	
+  private static final Logger logger = LoggerFactory.getLogger(AgigaConverter.class);
+	
 	public static AnnotationMetadata metadata() { return metadata(null); }
 	public static AnnotationMetadata metadata(String addToToolName) {
 		String fullToolName = toolName;
@@ -102,7 +108,7 @@ public class AgigaConverter {
 		Parse p = new Parse();
 		p.uuid = uid;
 		p.metadata = metadata(" http://www.aclweb.org/anthology-new/D/D10/D10-1002.pdf");
-		p.root = s2cHelper(root, nodeCounter, left, right, tokenizationUUID);
+		s2cHelper(root, 1, left, right, p);
 		return p;
 	}
 
@@ -110,12 +116,12 @@ public class AgigaConverter {
 	 * i'm using int[] as a java hack for int* (pass by reference rather than value).
 	 */
 	private static final HeadFinder HEAD_FINDER = new SemanticHeadFinder();
-	private static Constituent s2cHelper(Tree root, int[] nodeCounter, int left, int right, UUID tokenizationUUID) {
-		assert(nodeCounter.length == 1);
+	private static int s2cHelper(Tree root, int idCounter, int left, int right, Parse p) {
+		//assert(nodeCounter.length == 1);
 		Constituent cb = new Constituent();
-		cb.id = nodeCounter[0]++;
+		cb.id = idCounter;
 		cb.tag = root.value();
-		cb.tokenSequence = extractTokenRefSequence(left, right, null, tokenizationUUID);
+		cb.tokenSequence = extractTokenRefSequence(left, right, null, p.getUuid());
 
 		Tree headTree = root.isLeaf() ? null : HEAD_FINDER.determineHead(root);
 		int i = 0, headTreeIdx = -1;
@@ -123,7 +129,9 @@ public class AgigaConverter {
 		int leftPtr = left;
 		for(Tree child : root.getChildrenAsList()) {
 			int width = child.getLeaves().size();
-			cb.addChild(s2cHelper(child, nodeCounter, leftPtr, leftPtr + width, tokenizationUUID));
+			int childId = s2cHelper(child, idCounter++, leftPtr, leftPtr + width, p);
+			cb.addToChildList(childId);
+			//cb.addChild(
 			leftPtr += width;
 			if(headTree != null && child == headTree) {
 				assert(headTreeIdx < 0);
@@ -135,15 +143,17 @@ public class AgigaConverter {
 		if(headTreeIdx >= 0)
 			cb.setHeadChildIndex(headTreeIdx);
 
-		return cb;
+		p.addToRoot(cb);
+		return idCounter;
 	}
 
-	public static TokenRefSequence extractTokenRefSequence(AgigaMention m, UUID tokenizationUUID) {
-		return extractTokenRefSequence(m.getStartTokenIdx(), m.getEndTokenIdx(), m.getHeadTokenIdx(), tokenizationUUID);
+	public static TokenRefSequence extractTokenRefSequence(AgigaMention m, UUID uuid) {
+		return extractTokenRefSequence(m.getStartTokenIdx(), m.getEndTokenIdx(), m.getHeadTokenIdx(), uuid);
 	}
-	public static TokenRefSequence extractTokenRefSequence(int left, int right, Integer head, UUID tokenizationUUID) {
+	
+	public static TokenRefSequence extractTokenRefSequence(int left, int right, Integer head, UUID uuid) {
 	  TokenRefSequence tb = new TokenRefSequence();
-	  tb.tokenizationId = new UUID(tokenizationUUID.toString());
+	  tb.tokenizationId = new UUID(uuid.getId());
 
 		for(int tid=left; tid<right; tid++) {
 		  tb.addToTokenIndexList(tid);
@@ -359,7 +369,8 @@ public class AgigaConverter {
 		long start = System.currentTimeMillis();
 		File output = new File(args[args.length-1]);
 		TSerializer serializer = new TSerializer(new TBinaryProtocol.Factory());
-		try (BufferedOutputStream os = new BufferedOutputStream(new FileOutputStream(output, false));) {
+		TFileTransport ft = new TFileTransport(output.getAbsolutePath(), false);
+		
 		  int c = 0;
 	    int step = 250;
 	    for(int i=0; i<args.length-1; i++) {
@@ -370,7 +381,9 @@ public class AgigaConverter {
 	        Communication comm = convertDoc(doc);
 	        //comm.writeDelimitedTo(writer);
 	        byte[] commBytes = serializer.serialize(comm);
-	        os.write(commBytes);
+	        ft.write(commBytes);
+	        
+	        logger.info("Parsed a comm: " + comm.toString());
 	        
 	        c++;
 	        if(c % step == 0) {
@@ -378,10 +391,12 @@ public class AgigaConverter {
 	            c, (System.currentTimeMillis() - start)/1000d);
 	        }
 	      }
-	    }
+	    
 	    
 	    System.out.printf("done, wrote %d communications to %s in %.1f seconds\n",
 	        c, output.getPath(), (System.currentTimeMillis() - start)/1000d);
+	    
+	    ft.close();
 		}
 	}
 }
