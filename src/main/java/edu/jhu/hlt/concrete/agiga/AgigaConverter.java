@@ -369,7 +369,6 @@ public class AgigaConverter {
 		long start = System.currentTimeMillis();
 		File output = new File(args[args.length-1]);
 		TSerializer serializer = new TSerializer(new TBinaryProtocol.Factory());
-		TFileTransport ft = new TFileTransport(output.getAbsolutePath(), false);
 		
 		  int c = 0;
 	    int step = 250;
@@ -381,7 +380,6 @@ public class AgigaConverter {
 	        Communication comm = convertDoc(doc);
 	        //comm.writeDelimitedTo(writer);
 	        byte[] commBytes = serializer.serialize(comm);
-	        ft.write(commBytes);
 	        
 	        logger.info("Parsed a comm: " + comm.toString());
 	        
@@ -396,7 +394,7 @@ public class AgigaConverter {
 	    System.out.printf("done, wrote %d communications to %s in %.1f seconds\n",
 	        c, output.getPath(), (System.currentTimeMillis() - start)/1000d);
 	    
-	    ft.close();
+	    //ft.close();
 		}
 	}
 }
