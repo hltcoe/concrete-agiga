@@ -332,7 +332,7 @@ public class AgigaConverter {
     TSerializer serializer = new TSerializer(new TBinaryProtocol.Factory());
 
     int c = 0;
-    int step = 250;
+    int step = 1000;
     for (int i = 0; i < args.length - 1; i++) {
       File agigaXML = new File(args[i]);
       if (!agigaXML.exists()) {
@@ -347,13 +347,15 @@ public class AgigaConverter {
       logger.info("Reading from: " + agigaXML.getPath());
 
       for (AgigaDocument doc : docReader) {
-        logger.info("Got doc ID: {}", doc.getDocId());
-        try (FileOutputStream fos = new FileOutputStream(agigaXML.getAbsolutePath() + File.separator + doc.getDocId())) {
+        String outFilePath = outputDir + File.separator + doc.getDocId();
+        File outFile = new File(outFilePath);
+        if (outFile.exists())
+            outFile.delete();
+        outFile.createNewFile();
+        try (FileOutputStream fos = new FileOutputStream(outFile)) {
           Communication comm = convertDoc(doc);
           byte[] commBytes = serializer.serialize(comm);
           fos.write(commBytes);
-
-          logger.info("Parsed a comm: " + comm.toString());
 
           c++;
           if (c % step == 0) {
