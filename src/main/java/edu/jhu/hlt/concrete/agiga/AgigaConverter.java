@@ -296,12 +296,9 @@ public class AgigaConverter {
   }
 
   public static Communication convertDoc(AgigaDocument doc) {
-    Communication comm = new Communication();
-    comm.id = doc.getDocId();
-
-    String flatText = flattenText(doc);
+    Communication comm = extractRawCommunication(doc);
     List<Tokenization> toks = new ArrayList<Tokenization>();
-    comm.setText(flatText).setSectionSegmentation(sectionSegment(doc, flatText, toks)).setType(CommunicationType.NEWS);
+    comm.setSectionSegmentation(sectionSegment(doc, comm.text, toks));
     // this must occur last so that the tokenizations have been added to toks
     EntityMentionSet emsb = new EntityMentionSet().setUuid(ConcreteUtil.generateUUID()).setMetadata(
         metadata(" http://nlp.stanford.edu/pubs/conllst2011-coref.pdf"));
@@ -316,19 +313,37 @@ public class AgigaConverter {
     comm.setEntitySet(esb);
     return comm;
   }
+  
+  public static Communication extractRawCommunication(AgigaDocument doc) { 
+    Communication comm = new Communication();
+    comm.id = doc.getDocId();
+    comm.text = flattenText(doc);
+    comm.type = CommunicationType.NEWS;
+    comm.uuid = ConcreteUtil.generateUUID();
+    
+    return comm;
+  }
 
   public static void main(String[] args) throws Exception {
     if (args.length < 2) {
       logger.info("Please provide at minimum: ");
       logger.info("Path to 1 or more input Agiga XML files");
       logger.info("Path to a directory for Concrete thrift output files");
+      logger.info("A boolean to indicate whether to extract ONLY the raw Concrete Communications (e.g., whether drop annotations or not)");
+      logger.info("e.g., {} /my/agiga/doc.xml.gz /my/output/dir true", AgigaConverter.class.getSimpleName());
       return;
     }
 
-    long start = System.currentTimeMillis();
-    File outputDir = new File(args[args.length - 1]);
+    String rawExtractionString = args[args.length - 1];
+    boolean rawExtraction = Boolean.parseBoolean(rawExtractionString);
+    
+    String outputDirPath = args[args.length - 2];
+    File outputDir = new File(outputDirPath);
     if (!outputDir.exists())
       outputDir.mkdir();
+    
+    long start = System.currentTimeMillis();
+    
     TSerializer serializer = new TSerializer(new TBinaryProtocol.Factory());
 
     int c = 0;
@@ -353,7 +368,12 @@ public class AgigaConverter {
             outFile.delete();
         outFile.createNewFile();
         try (FileOutputStream fos = new FileOutputStream(outFile)) {
-          Communication comm = convertDoc(doc);
+          Communication comm;
+          if (rawExtraction)
+            comm = extractRawCommunication(doc);
+          else
+            comm = convertDoc(doc);
+          
           byte[] commBytes = serializer.serialize(comm);
           fos.write(commBytes);
 
