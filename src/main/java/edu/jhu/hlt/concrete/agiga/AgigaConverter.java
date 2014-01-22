@@ -202,6 +202,7 @@ public class AgigaConverter {
 
     Tokenization tb = new Tokenization();
     String tUuid = java.util.UUID.randomUUID().toString();
+
     tb.setUuid(tUuid).setMetadata(metadata(" http://nlp.stanford.edu/software/tokensregex.shtml")).setKind(TokenizationKind.TOKEN_LIST);
 
     int charOffset = 0;
@@ -242,6 +243,7 @@ public class AgigaConverter {
   }
 
   public static SentenceSegmentation sentenceSegment(AgigaDocument doc, List<Tokenization> addTo) {
+
     SentenceSegmentation sb = new SentenceSegmentation().setUuid(java.util.UUID.randomUUID().toString()).setMetadata(
         metadata(" Splitta http://www.aclweb.org/anthology-new/N/N09/N09-2061.pdf"));
     int charsFromStartOfCommunication = 0; // communication only has one section
@@ -253,6 +255,7 @@ public class AgigaConverter {
   }
 
   public static SectionSegmentation sectionSegment(AgigaDocument doc, String rawText, List<Tokenization> addTo) {
+
     SectionSegmentation ss = new SectionSegmentation().setUuid(java.util.UUID.randomUUID().toString()).setMetadata(metadata());
     ss.addToSectionList(new Section().setUuid(java.util.UUID.randomUUID().toString()).setKind(SectionKind.PASSAGE)
         .setTextSpan(new TextSpan().setStart(0).setEnding(rawText.length())).setSentenceSegmentation((sentenceSegment(doc, addTo))));
@@ -273,8 +276,8 @@ public class AgigaConverter {
 
   public static EntityMention convertMention(AgigaMention m, AgigaDocument doc, String corefSet, Tokenization tokenization) {
     String mstring = extractMentionString(m, doc);
-    return new EntityMention().setUuid(java.util.UUID.randomUUID().toString()).setTokens(extractTokenRefSequence(m, tokenization.getUuid()))
 
+    return new EntityMention().setUuid(java.util.UUID.randomUUID().toString()).setTokens(extractTokenRefSequence(m, tokenization.getUuid()))
     .setEntityType(EntityType.UNKNOWN).setPhraseType(PhraseType.NAME) // TODO warn users that this may not be accurate
         .setConfidence(1f).setText(mstring); // TODO merge this an method below
 
@@ -284,6 +287,7 @@ public class AgigaConverter {
    * adds EntityMentions to EnityMentionSet.Builder creates and returns an Entity
    */
   public static Entity convertCoref(EntityMentionSet emsb, AgigaCoref coref, AgigaDocument doc, List<Tokenization> toks) {
+
     Entity entBuilder = new Entity().setUuid(java.util.UUID.randomUUID().toString());
     for (AgigaMention m : coref.getMentions()) {
       EntityMention em = convertMention(m, doc, java.util.UUID.randomUUID().toString(), toks.get(m.getSentenceIdx()));
@@ -312,14 +316,13 @@ public class AgigaConverter {
     comm.addToEntitySets(esb);
     return comm;
   }
-  
-  public static Communication extractRawCommunication(AgigaDocument doc) { 
+
+  public static Communication extractRawCommunication(AgigaDocument doc) {
     Communication comm = new Communication();
     comm.id = doc.getDocId();
     comm.text = flattenText(doc);
     comm.type = CommunicationType.NEWS;
     comm.uuid = java.util.UUID.randomUUID().toString();
-    
     return comm;
   }
 
@@ -335,14 +338,14 @@ public class AgigaConverter {
 
     String rawExtractionString = args[args.length - 1];
     boolean rawExtraction = Boolean.parseBoolean(rawExtractionString);
-    
+
     String outputDirPath = args[args.length - 2];
     File outputDir = new File(outputDirPath);
     if (!outputDir.exists())
       outputDir.mkdir();
-    
+
     long start = System.currentTimeMillis();
-    
+
     TSerializer serializer = new TSerializer(new TBinaryProtocol.Factory());
 
     int c = 0;
@@ -372,7 +375,7 @@ public class AgigaConverter {
             comm = extractRawCommunication(doc);
           else
             comm = convertDoc(doc);
-          
+
           byte[] commBytes = serializer.serialize(comm);
           fos.write(commBytes);
 
