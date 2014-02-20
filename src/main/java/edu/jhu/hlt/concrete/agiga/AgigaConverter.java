@@ -237,9 +237,10 @@ public class AgigaConverter {
   public static Sentence convertSentence(AgigaSentence sent, int charsFromStartOfCommunication, List<Tokenization> addTo) {
     Tokenization tokenization = convertTokenization(sent);
     addTo.add(tokenization); // one tokenization per sentence
-    return new Sentence().setUuid(java.util.UUID.randomUUID().toString())
-        .setTextSpan(new TextSpan().setStart(charsFromStartOfCommunication).setEnding(charsFromStartOfCommunication + flattenText(sent).length()))
-        .setTokenization(tokenization);
+    Sentence concSent = new Sentence().setUuid(java.util.UUID.randomUUID().toString())
+        .setTextSpan(new TextSpan().setStart(charsFromStartOfCommunication).setEnding(charsFromStartOfCommunication + flattenText(sent).length()));
+    concSent.addToTokenizationList(tokenization);
+    return concSent;
   }
 
   public static SentenceSegmentation sentenceSegment(AgigaDocument doc, List<Tokenization> addTo) {
@@ -257,9 +258,14 @@ public class AgigaConverter {
   public static SectionSegmentation sectionSegment(AgigaDocument doc, String rawText, List<Tokenization> addTo) {
 
     SectionSegmentation ss = new SectionSegmentation().setUuid(java.util.UUID.randomUUID().toString()).setMetadata(metadata());
-    ss.addToSectionList(new Section().setUuid(java.util.UUID.randomUUID().toString()).setKind(SectionKind.PASSAGE)
-        .setTextSpan(new TextSpan().setStart(0).setEnding(rawText.length())).setSentenceSegmentation((sentenceSegment(doc, addTo))));
-
+    Section concSect = new Section()
+        .setUuid(java.util.UUID.randomUUID().toString())
+        .setKind(SectionKind.PASSAGE)
+        .setTextSpan(new TextSpan()
+                     .setStart(0)
+                     .setEnding(rawText.length()));
+    concSect.addToSentenceSegmentation(sentenceSegment(doc, addTo));
+    ss.addToSectionList(concSect);
     return ss;
   }
 
@@ -329,17 +335,17 @@ public class AgigaConverter {
   public static void main(String[] args) throws Exception {
     if (args.length < 2) {
       logger.info("Please provide at minimum: ");
-      logger.info("Path to 1 or more input Agiga XML files");
       logger.info("Path to a directory for Concrete thrift output files");
       logger.info("A boolean to indicate whether to extract ONLY the raw Concrete Communications (e.g., whether drop annotations or not)");
-      logger.info("e.g., {} /my/agiga/doc.xml.gz /my/output/dir true", AgigaConverter.class.getSimpleName());
+      logger.info("Path to 1 or more input Agiga XML files");
+      logger.info("e.g., {} /my/output/dir true /my/agiga/doc.xml.gz", AgigaConverter.class.getSimpleName());
       return;
     }
 
     String rawExtractionString = args[args.length - 1];
     boolean rawExtraction = Boolean.parseBoolean(rawExtractionString);
 
-    String outputDirPath = args[args.length - 2];
+    String outputDirPath = args[0];
     File outputDir = new File(outputDirPath);
     if (!outputDir.exists())
       outputDir.mkdir();
@@ -350,7 +356,7 @@ public class AgigaConverter {
 
     int c = 0;
     int step = 1000;
-    for (int i = 0; i < args.length - 1; i++) {
+    for (int i = 0; i < args.length - 2; i++) {
       File agigaXML = new File(args[i]);
       if (!agigaXML.exists()) {
         logger.error("File: {} does not seem to exist.", agigaXML.getAbsolutePath());

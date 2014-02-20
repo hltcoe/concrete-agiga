@@ -76,7 +76,7 @@ public class ConcreteToStanfordConverter {
     // the WordLemmaTag label in converting it to a CoreLabel. Accordingly
     // we allow access to the labels here as well.
     public List<WordLemmaTag> getStanfordWordLemmaTags() {
-        Tokenization tokens = sent.getTokenization();
+        Tokenization tokens = sent.getTokenizationList().get(0);
         TokenTagging posTags = tokens.getPosTagList();
         List<WordLemmaTag> labels = new ArrayList<WordLemmaTag>();
         List<Token> tokenList = tokens.getTokenList();
@@ -104,7 +104,7 @@ public class ConcreteToStanfordConverter {
             nodes = getStanfordTreeGraphNodes(tokenizationTheory, dependencyTheory);
         }
 
-		Tokenization tok = sent.getTokenization();
+        Tokenization tok = sent.getTokenizationList().get(0);
         DependencyParse depParse = tok.getDependencyParseList().get(dependencyTheory);
         for (Dependency arc : depParse.getDependencyList()) {
             // Add one, since the tokens are zero-indexed but the TreeGraphNodes
@@ -143,7 +143,7 @@ public class ConcreteToStanfordConverter {
             nodes.add(treeNode);
         }
 
-		Tokenization tok = sent.getTokenization();
+        Tokenization tok = sent.getTokenizationList().get(0);
         DependencyParse depParse = tok.getDependencyParseList().get(dependencyTheory);
         for (Dependency arc : depParse.getDependencyList()) {
             // Add one, since the tokens are zero-indexed but the TreeGraphNodes
