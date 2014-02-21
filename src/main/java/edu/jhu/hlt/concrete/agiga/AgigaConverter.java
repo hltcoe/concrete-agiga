@@ -342,13 +342,19 @@ public class AgigaConverter {
       return;
     }
 
-    String rawExtractionString = args[args.length - 1];
+    
+    String rawExtractionString = args[1];
     boolean rawExtraction = Boolean.parseBoolean(rawExtractionString);
+    if (rawExtraction)
+        logger.info("Extracting only raw Agiga documents.");
+    else
+        logger.info("Extracting Agiga documents and annotations.");
 
     String outputDirPath = args[0];
     File outputDir = new File(outputDirPath);
     if (!outputDir.exists())
       outputDir.mkdir();
+    logger.info("Writing output to: " + outputDirPath);
 
     long start = System.currentTimeMillis();
 
@@ -356,7 +362,7 @@ public class AgigaConverter {
 
     int c = 0;
     int step = 1000;
-    for (int i = 0; i < args.length - 2; i++) {
+    for (int i = 2; i < args.length; i++) {
       File agigaXML = new File(args[i]);
       if (!agigaXML.exists()) {
         logger.error("File: {} does not seem to exist.", agigaXML.getAbsolutePath());
@@ -370,7 +376,7 @@ public class AgigaConverter {
       logger.info("Reading from: " + agigaXML.getPath());
 
       for (AgigaDocument doc : docReader) {
-        String outFilePath = outputDir + File.separator + doc.getDocId();
+        String outFilePath = outputDir + File.separator + doc.getDocId() + ".thrift";
         File outFile = new File(outFilePath);
         if (outFile.exists())
             outFile.delete();
