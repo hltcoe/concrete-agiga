@@ -104,7 +104,7 @@ public class AgigaConverter {
     Parse p = new Parse();
     p.uuid = java.util.UUID.randomUUID().toString();
     p.metadata = metadata(" http://www.aclweb.org/anthology-new/D/D10/D10-1002.pdf");
-    s2cHelper(root, 1, left, right, p);
+    s2cHelper(root, 1, left, right, p, tokenizationUUID);
     return p;
   }
 
@@ -113,12 +113,12 @@ public class AgigaConverter {
    */
   private static final HeadFinder HEAD_FINDER = new SemanticHeadFinder();
 
-  private static int s2cHelper(Tree root, int idCounter, int left, int right, Parse p) {
+  private static int s2cHelper(Tree root, int idCounter, int left, int right, Parse p, String tokenizationUUID) {
     // assert(nodeCounter.length == 1);
     Constituent cb = new Constituent();
     cb.id = idCounter;
     cb.tag = root.value();
-    cb.tokenSequence = extractTokenRefSequence(left, right, null, p.getUuid());
+    cb.tokenSequence = extractTokenRefSequence(left, right, null, tokenizationUUID);
 
     Tree headTree = root.isLeaf() ? null : HEAD_FINDER.determineHead(root);
     int i = 0, headTreeIdx = -1;
@@ -126,7 +126,7 @@ public class AgigaConverter {
     int leftPtr = left;
     for (Tree child : root.getChildrenAsList()) {
       int width = child.getLeaves().size();
-      int childId = s2cHelper(child, idCounter++, leftPtr, leftPtr + width, p);
+      int childId = s2cHelper(child, idCounter++, leftPtr, leftPtr + width, p, tokenizationUUID);
       cb.addToChildList(childId);
       // cb.addChild(
       leftPtr += width;
