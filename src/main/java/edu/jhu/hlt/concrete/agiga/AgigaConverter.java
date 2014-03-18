@@ -243,10 +243,10 @@ public class AgigaConverter {
     return concSent;
   }
 
-  public static SentenceSegmentation sentenceSegment(AgigaDocument doc, List<Tokenization> addTo) {
+  public static SentenceSegmentation sentenceSegment(AgigaDocument doc, String sectionId, List<Tokenization> addTo) {
 
     SentenceSegmentation sb = new SentenceSegmentation().setUuid(java.util.UUID.randomUUID().toString()).setMetadata(
-        metadata(" Splitta http://www.aclweb.org/anthology-new/N/N09/N09-2061.pdf"));
+        metadata(" Splitta http://www.aclweb.org/anthology-new/N/N09/N09-2061.pdf")).setSectionId(sectionId);
     int charsFromStartOfCommunication = 0; // communication only has one section
     for (AgigaSentence sentence : doc.getSents()) {
       sb.addToSentenceList(convertSentence(sentence, charsFromStartOfCommunication, addTo));
@@ -264,7 +264,7 @@ public class AgigaConverter {
         .setTextSpan(new TextSpan()
                      .setStart(0)
                      .setEnding(rawText.length()));
-    concSect.addToSentenceSegmentation(sentenceSegment(doc, addTo));
+    concSect.addToSentenceSegmentation(sentenceSegment(doc, concSect.getUuid(), addTo));
     ss.addToSectionList(concSect);
     return ss;
   }
