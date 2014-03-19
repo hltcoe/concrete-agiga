@@ -104,7 +104,7 @@ public class AgigaConverter {
     Parse p = new Parse();
     p.uuid = java.util.UUID.randomUUID().toString();
     p.metadata = metadata(" http://www.aclweb.org/anthology-new/D/D10/D10-1002.pdf");
-    s2cHelper(root, 1, left, right, p);
+    s2cHelper(root, 1, left, right, p, tokenizationUUID);
     return p;
   }
 
@@ -113,12 +113,12 @@ public class AgigaConverter {
    */
   private static final HeadFinder HEAD_FINDER = new SemanticHeadFinder();
 
-  private static int s2cHelper(Tree root, int idCounter, int left, int right, Parse p) {
+  private static int s2cHelper(Tree root, int idCounter, int left, int right, Parse p, String tokenizationUUID) {
     // assert(nodeCounter.length == 1);
     Constituent cb = new Constituent();
     cb.id = idCounter;
     cb.tag = root.value();
-    cb.tokenSequence = extractTokenRefSequence(left, right, null, p.getUuid());
+    cb.tokenSequence = extractTokenRefSequence(left, right, null, tokenizationUUID);
 
     Tree headTree = root.isLeaf() ? null : HEAD_FINDER.determineHead(root);
     int i = 0, headTreeIdx = -1;
@@ -126,7 +126,7 @@ public class AgigaConverter {
     int leftPtr = left;
     for (Tree child : root.getChildrenAsList()) {
       int width = child.getLeaves().size();
-      int childId = s2cHelper(child, idCounter++, leftPtr, leftPtr + width, p);
+      int childId = s2cHelper(child, idCounter++, leftPtr, leftPtr + width, p, tokenizationUUID);
       cb.addToChildList(childId);
       // cb.addChild(
       leftPtr += width;
@@ -243,10 +243,10 @@ public class AgigaConverter {
     return concSent;
   }
 
-  public static SentenceSegmentation sentenceSegment(AgigaDocument doc, List<Tokenization> addTo) {
+  public static SentenceSegmentation sentenceSegment(AgigaDocument doc, String sectionId, List<Tokenization> addTo) {
 
     SentenceSegmentation sb = new SentenceSegmentation().setUuid(java.util.UUID.randomUUID().toString()).setMetadata(
-        metadata(" Splitta http://www.aclweb.org/anthology-new/N/N09/N09-2061.pdf"));
+        metadata(" Splitta http://www.aclweb.org/anthology-new/N/N09/N09-2061.pdf")).setSectionId(sectionId);
     int charsFromStartOfCommunication = 0; // communication only has one section
     for (AgigaSentence sentence : doc.getSents()) {
       sb.addToSentenceList(convertSentence(sentence, charsFromStartOfCommunication, addTo));
@@ -264,7 +264,7 @@ public class AgigaConverter {
         .setTextSpan(new TextSpan()
                      .setStart(0)
                      .setEnding(rawText.length()));
-    concSect.addToSentenceSegmentation(sentenceSegment(doc, addTo));
+    concSect.addToSentenceSegmentation(sentenceSegment(doc, concSect.getUuid(), addTo));
     ss.addToSectionList(concSect);
     return ss;
   }

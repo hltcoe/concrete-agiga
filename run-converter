@@ -6,7 +6,7 @@ if len(sys.argv) < 3:
 	print "please provide: 1) one or more input files and 2) an output file"
 	sys.exit(-1)
 
-version = '1.0.3-SNAPSHOT'
+version = '2.0.0-SNAPSHOT'
 jar = 'target/concrete-agiga-' + version + '.jar'
 deps = 'target/concrete-agiga-' + version + '-jar-with-dependencies.jar'
 if not (os.path.exists(jar) and os.path.exists(deps)):
