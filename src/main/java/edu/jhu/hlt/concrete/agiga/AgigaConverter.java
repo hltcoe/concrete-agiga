@@ -142,7 +142,7 @@ public class AgigaConverter {
       cb.setHeadChildIndex(headTreeIdx);
 
     p.addToConstituentList(cb);
-    return idCounter[0];
+    return cb.id;
   }
 
   public static TokenRefSequence extractTokenRefSequence(AgigaMention m, String uuid) {
