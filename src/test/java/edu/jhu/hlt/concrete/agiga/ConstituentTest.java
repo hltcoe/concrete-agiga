@@ -1,5 +1,5 @@
 /**
- * 
+ *
  */
 package edu.jhu.hlt.concrete.agiga;
 
@@ -35,11 +35,11 @@ import edu.jhu.hlt.concrete.util.SuperCommunication;
 public class ConstituentTest {
 
   private static final Logger logger = LoggerFactory.getLogger(ConstituentTest.class);
-  
+
   String strPath = "src/test/resources/afp_eng_199405.xml.gz";
   Path testDataPath;
   InputStream testDataIS;
-  
+
   /**
    * @throws java.lang.Exception
    */
@@ -49,7 +49,7 @@ public class ConstituentTest {
       testDataPath = Paths.get(strPath);
       testDataIS = new FileInputStream(testDataPath.toFile());
     } catch (Exception e) {
-      throw new IllegalArgumentException("You need to make sure this file exists before running the tests: " 
+      throw new IllegalArgumentException("You need to make sure this file exists before running the tests: "
           + strPath);
     }
   }
@@ -71,7 +71,7 @@ public class ConstituentTest {
     SuperCommunication sc = new SuperCommunication(c);
     Tokenization t = sc.firstTokenization();
     Parse p = t.getParse();
-    
+
     Set<Integer> intSet = new HashSet<>(t.getParse().getConstituentListSize());
     for (Constituent ct : p.getConstituentList()) {
       // logger.info("Got constituent ID: {}", ct.id);
