@@ -114,7 +114,7 @@ public class AgigaConverter {
 
   private static int s2cHelper(Tree root, int idCounter, int left, int right, Parse p, String tokenizationUUID) {
     Constituent cb = new Constituent();
-    int incr = idCounter++;
+    int incr = idCounter+ 1;
     cb.id = incr;
     cb.tag = root.value();
     cb.tokenSequence = extractTokenRefSequence(left, right, null, tokenizationUUID);
