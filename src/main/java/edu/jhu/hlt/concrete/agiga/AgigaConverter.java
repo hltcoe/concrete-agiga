@@ -92,6 +92,7 @@ public class AgigaConverter {
   public static Parse stanford2concrete(Tree root, String tokenizationUUID) {
     int left = 0;
     int right = root.getLeaves().size();
+	int[] idCounter = new int[]{0};
     /*
      * this was a bug in stanford nlp; if you have a terminal with a space in it, like (CD 2 1/2)
      * stanford's getLeaves() will return Trees for 2 and 1/2
@@ -103,7 +104,7 @@ public class AgigaConverter {
     Parse p = new Parse();
     p.uuid = java.util.UUID.randomUUID().toString();
     p.metadata = metadata(" http://www.aclweb.org/anthology-new/D/D10/D10-1002.pdf");
-    s2cHelper(root, 0, left, right, p, tokenizationUUID);
+    s2cHelper(root, idCounter, left, right, p, tokenizationUUID);
     return p;
   }
 
@@ -112,10 +113,10 @@ public class AgigaConverter {
    */
   private static final HeadFinder HEAD_FINDER = new SemanticHeadFinder();
 
-  private static int s2cHelper(Tree root, int idCounter, int left, int right, Parse p, String tokenizationUUID) {
+  private static int s2cHelper(Tree root, int[] idCounter, int left, int right, Parse p, String tokenizationUUID) {
+    assert(idCounter.length == 1);
     Constituent cb = new Constituent();
-    int incr = idCounter+ 1;
-    cb.id = incr;
+    cb.id = idCounter[0]++;
     cb.tag = root.value();
     cb.tokenSequence = extractTokenRefSequence(left, right, null, tokenizationUUID);
 
@@ -125,7 +126,7 @@ public class AgigaConverter {
     int leftPtr = left;
     for (Tree child : root.getChildrenAsList()) {
       int width = child.getLeaves().size();
-      int childId = s2cHelper(child, incr, leftPtr, leftPtr + width, p, tokenizationUUID);
+      int childId = s2cHelper(child, idCounter, leftPtr, leftPtr + width, p, tokenizationUUID);
       cb.addToChildList(childId);
 
       leftPtr += width;
