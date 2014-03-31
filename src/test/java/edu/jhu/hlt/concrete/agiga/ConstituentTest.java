@@ -36,7 +36,7 @@ public class ConstituentTest {
 
   private static final Logger logger = LoggerFactory.getLogger(ConstituentTest.class);
 
-  String strPath = "src/test/resources/afp_eng_199405.xml.gz";
+  String strPath = "src/test/resources/agiga_dog-bites-man.annotated.xml.gz";
   Path testDataPath;
   InputStream testDataIS;
 
@@ -72,7 +72,8 @@ public class ConstituentTest {
     Tokenization t = sc.firstTokenization();
     Parse p = t.getParse();
 
-    Set<Integer> intSet = new HashSet<>(t.getParse().getConstituentListSize());
+    assertTrue(p.getConstituentListSize() > 0);
+    Set<Integer> intSet = new HashSet<>(p.getConstituentListSize());
     for (Constituent ct : p.getConstituentList()) {
       // logger.info("Got constituent ID: {}", ct.id);
       assertTrue(intSet.add(ct.getId()));
