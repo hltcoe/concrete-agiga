@@ -93,30 +93,29 @@ public class AgigaConverter {
     int left = 0;
     int right = root.getLeaves().size();
     /*
-     * // this was a bug in stanford nlp; // if you have a terminal with a space in it, like (CD 2 1/2) // stanford's getLeaves() will return Trees for 2 and
-     * 1/2 // whereas the tokenization will have one token for 2 1/2 // => this has since been handled in agiga, but this is a check to // make sure you have
-     * the right jar if(root.getLeaves().size() != tokenization.getTokenList().size()) { System.out.println("Tokenization length = " +
-     * tokenization.getTokenList().size()); System.out.println("Parse #leaves = " + root.getLeaves().size()); System.out.println("tokens = " +
-     * tokenization.getTokenList()); System.out.println("leaves = " + root.getLeaves()); System.out.println("make sure you have the newest version of agiga!");
-     * throw new RuntimeException("Tokenization vs Parse error! Make sure you have the newest agiga"); }
+     * this was a bug in stanford nlp; if you have a terminal with a space in it, like (CD 2 1/2)
+     * stanford's getLeaves() will return Trees for 2 and 1/2
+     * whereas the tokenization will have one token for 2 1/2
+     * => this has since been handled in agiga, but this is a check to
+     * make sure you have the right jar
      */
 
     Parse p = new Parse();
     p.uuid = java.util.UUID.randomUUID().toString();
     p.metadata = metadata(" http://www.aclweb.org/anthology-new/D/D10/D10-1002.pdf");
-    s2cHelper(root, 1, left, right, p, tokenizationUUID);
+    s2cHelper(root, 0, left, right, p, tokenizationUUID);
     return p;
   }
 
   /**
-   * i'm using int[] as a java hack for int* (pass by reference rather than value).
+   *
    */
   private static final HeadFinder HEAD_FINDER = new SemanticHeadFinder();
 
   private static int s2cHelper(Tree root, int idCounter, int left, int right, Parse p, String tokenizationUUID) {
-    // assert(nodeCounter.length == 1);
     Constituent cb = new Constituent();
-    cb.id = idCounter;
+    int incr = idCounter++;
+    cb.id = incr;
     cb.tag = root.value();
     cb.tokenSequence = extractTokenRefSequence(left, right, null, tokenizationUUID);
 
@@ -126,9 +125,9 @@ public class AgigaConverter {
     int leftPtr = left;
     for (Tree child : root.getChildrenAsList()) {
       int width = child.getLeaves().size();
-      int childId = s2cHelper(child, idCounter++, leftPtr, leftPtr + width, p, tokenizationUUID);
+      int childId = s2cHelper(child, incr, leftPtr, leftPtr + width, p, tokenizationUUID);
       cb.addToChildList(childId);
-      // cb.addChild(
+
       leftPtr += width;
       if (headTree != null && child == headTree) {
         assert (headTreeIdx < 0);
@@ -141,7 +140,7 @@ public class AgigaConverter {
       cb.setHeadChildIndex(headTreeIdx);
 
     p.addToConstituentList(cb);
-    return idCounter;
+    return cb.id;
   }
 
   public static TokenRefSequence extractTokenRefSequence(AgigaMention m, String uuid) {
@@ -342,7 +341,7 @@ public class AgigaConverter {
       return;
     }
 
-    
+
     String rawExtractionString = args[1];
     boolean rawExtraction = Boolean.parseBoolean(rawExtractionString);
     if (rawExtraction)
