@@ -141,6 +141,8 @@ public class AgigaConverter {
       cb.setHeadChildIndex(headTreeIdx);
 
     p.addToConstituentList(cb);
+    if (!cb.isSetChildList())
+      cb.childList = new ArrayList<>();
     return cb.id;
   }
 
@@ -189,12 +191,12 @@ public class AgigaConverter {
     lemma.setMetadata(metadata());
 
     TokenTagging pos = new TokenTagging();
-    lemma.setUuid(java.util.UUID.randomUUID().toString());
-    lemma.setMetadata(metadata());
+    pos.setUuid(java.util.UUID.randomUUID().toString());
+    pos.setMetadata(metadata());
 
     TokenTagging ner = new TokenTagging();
-    lemma.setUuid(java.util.UUID.randomUUID().toString());
-    lemma.setMetadata(metadata());
+    ner.setUuid(java.util.UUID.randomUUID().toString());
+    ner.setMetadata(metadata());
 
     // TokenTagging.Builder normNerBuilder = TokenTagging.newBuilder()
     // .setUuid(new UUID(java.util.UUID.randomUUID().toString()))
@@ -231,7 +233,10 @@ public class AgigaConverter {
   }
 
   public static TaggedToken makeTaggedToken(String tag, int tokId) {
-    return new TaggedToken().setTokenIndex(tokId).setTag(tag).setConfidence(1f);
+    return new TaggedToken()
+      .setTokenIndex(tokId)
+      .setTag(tag)
+      .setConfidence(1f);
   }
 
   public static Sentence convertSentence(AgigaSentence sent, int charsFromStartOfCommunication, List<Tokenization> addTo) {
@@ -294,7 +299,9 @@ public class AgigaConverter {
    */
   public static Entity convertCoref(EntityMentionSet emsb, AgigaCoref coref, AgigaDocument doc, List<Tokenization> toks) {
 
-    Entity entBuilder = new Entity().setUuid(java.util.UUID.randomUUID().toString());
+    Entity entBuilder = new Entity()
+      .setUuid(java.util.UUID.randomUUID().toString())
+      .setType(EntityType.OTHER);
     for (AgigaMention m : coref.getMentions()) {
       EntityMention em = convertMention(m, doc, java.util.UUID.randomUUID().toString(), toks.get(m.getSentenceIdx()));
       emsb.addToMentionSet(em);
