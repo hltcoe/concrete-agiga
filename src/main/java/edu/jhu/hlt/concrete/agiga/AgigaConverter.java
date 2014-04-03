@@ -316,9 +316,11 @@ public class AgigaConverter {
     List<Tokenization> toks = new ArrayList<Tokenization>();
     comm.addToSectionSegmentations(sectionSegment(doc, comm.text, toks));
     // this must occur last so that the tokenizations have been added to toks
+    List<EntityMention> mentionSet = new ArrayList<EntityMention>();
     EntityMentionSet emsb = new EntityMentionSet().setUuid(java.util.UUID.randomUUID().toString()).setMetadata(
-        metadata(" http://nlp.stanford.edu/pubs/conllst2011-coref.pdf"));
-    EntitySet esb = new EntitySet().setUuid(java.util.UUID.randomUUID().toString()).setMetadata(metadata(" http://nlp.stanford.edu/pubs/conllst2011-coref.pdf"));
+        metadata(" http://nlp.stanford.edu/pubs/conllst2011-coref.pdf")).setMentionSet(mentionSet);
+    List<Entity> entityList = new ArrayList<Entity>();
+    EntitySet esb = new EntitySet().setUuid(java.util.UUID.randomUUID().toString()).setMetadata(metadata(" http://nlp.stanford.edu/pubs/conllst2011-coref.pdf")).setEntityList(entityList);
     for (AgigaCoref coref : doc.getCorefs()) {
       Entity e = convertCoref(emsb, coref, doc, toks);
       esb.addToEntityList(e);
