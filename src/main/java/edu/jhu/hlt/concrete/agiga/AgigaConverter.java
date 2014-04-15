@@ -343,12 +343,12 @@ public class AgigaConverter {
 
   public static void main(String[] args) throws Exception {
     if (args.length < 2) {
-      logger.info("Please provide at minimum: ");
-      logger.info("Path to a directory for Concrete thrift output files");
-      logger.info("A boolean to indicate whether to extract ONLY the raw Concrete Communications (e.g., whether drop annotations or not)");
-      logger.info("Path to 1 or more input Agiga XML files");
-      logger.info("e.g., {} /my/output/dir true /my/agiga/doc.xml.gz", AgigaConverter.class.getSimpleName());
-      return;
+      System.out.println("Please provide at minimum: ");
+      System.out.println("Path to a directory for Concrete thrift output files");
+      System.out.println("A boolean to indicate whether to extract ONLY the raw Concrete Communications (e.g., whether drop annotations or not)");
+      System.out.println("Path to 1 or more input Agiga XML files");
+      System.out.println("e.g., " + AgigaConverter.class.getSimpleName() + " /my/output/dir true /my/agiga/doc.xml.gz");
+      System.exit(1);
     }
 
 
