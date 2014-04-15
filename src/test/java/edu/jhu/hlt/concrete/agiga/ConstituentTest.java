@@ -15,8 +15,6 @@ import java.util.Set;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import edu.jhu.agiga.AgigaDocument;
 import edu.jhu.agiga.AgigaPrefs;
@@ -33,8 +31,6 @@ import edu.jhu.hlt.concrete.util.SuperCommunication;
  *
  */
 public class ConstituentTest {
-
-  private static final Logger logger = LoggerFactory.getLogger(ConstituentTest.class);
 
   String strPath = "src/test/resources/agiga_dog-bites-man.annotated.xml.gz";
   Path testDataPath;
