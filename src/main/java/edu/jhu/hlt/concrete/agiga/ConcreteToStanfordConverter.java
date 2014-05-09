@@ -10,16 +10,11 @@ import java.util.zip.GZIPInputStream;
 
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.protocol.TBinaryProtocol;
-import org.apache.thrift.protocol.TJSONProtocol;
 import org.apache.thrift.transport.TFileTransport;
 
-import edu.jhu.hlt.concrete.Communication;
 import edu.jhu.hlt.concrete.Dependency;
 import edu.jhu.hlt.concrete.DependencyParse;
-import edu.jhu.hlt.concrete.Section;
-import edu.jhu.hlt.concrete.SectionSegmentation;
 import edu.jhu.hlt.concrete.Sentence;
-import edu.jhu.hlt.concrete.SentenceSegmentation;
 import edu.jhu.hlt.concrete.TaggedToken;
 import edu.jhu.hlt.concrete.Token;
 import edu.jhu.hlt.concrete.TokenTagging;

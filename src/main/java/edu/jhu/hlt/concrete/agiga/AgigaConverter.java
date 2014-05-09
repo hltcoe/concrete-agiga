@@ -21,7 +21,6 @@ import edu.jhu.agiga.AgigaTypedDependency;
 import edu.jhu.agiga.StreamingDocumentReader;
 import edu.jhu.hlt.concrete.AnnotationMetadata;
 import edu.jhu.hlt.concrete.Communication;
-import edu.jhu.hlt.concrete.CommunicationType;
 import edu.jhu.hlt.concrete.Constituent;
 import edu.jhu.hlt.concrete.Dependency;
 import edu.jhu.hlt.concrete.DependencyParse;
@@ -29,11 +28,8 @@ import edu.jhu.hlt.concrete.Entity;
 import edu.jhu.hlt.concrete.EntityMention;
 import edu.jhu.hlt.concrete.EntityMentionSet;
 import edu.jhu.hlt.concrete.EntitySet;
-import edu.jhu.hlt.concrete.EntityType;
 import edu.jhu.hlt.concrete.Parse;
-import edu.jhu.hlt.concrete.PhraseType;
 import edu.jhu.hlt.concrete.Section;
-import edu.jhu.hlt.concrete.SectionKind;
 import edu.jhu.hlt.concrete.SectionSegmentation;
 import edu.jhu.hlt.concrete.Sentence;
 import edu.jhu.hlt.concrete.SentenceSegmentation;
@@ -44,7 +40,6 @@ import edu.jhu.hlt.concrete.TokenRefSequence;
 import edu.jhu.hlt.concrete.TokenTagging;
 import edu.jhu.hlt.concrete.Tokenization;
 import edu.jhu.hlt.concrete.TokenizationKind;
-
 import edu.stanford.nlp.trees.HeadFinder;
 import edu.stanford.nlp.trees.SemanticHeadFinder;
 import edu.stanford.nlp.trees.Tree;
@@ -265,7 +260,7 @@ public class AgigaConverter {
     SectionSegmentation ss = new SectionSegmentation().setUuid(java.util.UUID.randomUUID().toString()).setMetadata(metadata());
     Section concSect = new Section()
         .setUuid(java.util.UUID.randomUUID().toString())
-        .setKind(SectionKind.PASSAGE)
+        .setKind("Passage")
         .setTextSpan(new TextSpan()
                      .setStart(0)
                      .setEnding(rawText.length()));
@@ -289,7 +284,7 @@ public class AgigaConverter {
     String mstring = extractMentionString(m, doc);
 
     return new EntityMention().setUuid(java.util.UUID.randomUUID().toString()).setTokens(extractTokenRefSequence(m, tokenization.getUuid()))
-    .setEntityType(EntityType.UNKNOWN).setPhraseType(PhraseType.NAME) // TODO warn users that this may not be accurate
+    .setEntityType("Unknown").setPhraseType("Name") // TODO warn users that this may not be accurate
         .setConfidence(1f).setText(mstring); // TODO merge this an method below
 
   }
@@ -301,7 +296,7 @@ public class AgigaConverter {
 
     Entity entBuilder = new Entity()
       .setUuid(java.util.UUID.randomUUID().toString())
-      .setType(EntityType.OTHER);
+      .setType("Other");
     for (AgigaMention m : coref.getMentions()) {
       EntityMention em = convertMention(m, doc, java.util.UUID.randomUUID().toString(), toks.get(m.getSentenceIdx()));
       emsb.addToMentionSet(em);
@@ -336,7 +331,7 @@ public class AgigaConverter {
     Communication comm = new Communication();
     comm.id = doc.getDocId();
     comm.text = flattenText(doc);
-    comm.type = CommunicationType.NEWS;
+    comm.type = "News";
     comm.uuid = java.util.UUID.randomUUID().toString();
     return comm;
   }

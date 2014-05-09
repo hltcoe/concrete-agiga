@@ -23,8 +23,9 @@ import edu.jhu.hlt.concrete.Communication;
 import edu.jhu.hlt.concrete.Constituent;
 import edu.jhu.hlt.concrete.Parse;
 import edu.jhu.hlt.concrete.Tokenization;
+import edu.jhu.hlt.concrete.communications.SuperCommunication;
 import edu.jhu.hlt.concrete.util.ConcreteException;
-import edu.jhu.hlt.concrete.util.SuperCommunication;
+import edu.jhu.hlt.concrete.util.Serialization;
 
 /**
  * @author max
@@ -75,5 +76,13 @@ public class ConstituentTest {
       assertTrue(intSet.add(ct.getId()));
     }
   }
-
+  
+  @Test
+  public void normal() throws ConcreteException {
+    StreamingDocumentReader docReader = new StreamingDocumentReader(testDataPath.toString(), new AgigaPrefs());
+    assertTrue(docReader.hasNext());
+    AgigaDocument firstDoc = docReader.next();
+    Communication c = AgigaConverter.convertDoc(firstDoc);
+    new Serialization().toBytes(c);
+  }
 }
