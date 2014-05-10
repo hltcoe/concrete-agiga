@@ -297,10 +297,14 @@ public class AgigaConverter {
     Entity entBuilder = new Entity()
       .setUuid(java.util.UUID.randomUUID().toString())
       .setType("Other");
-    for (AgigaMention m : coref.getMentions()) {
-      EntityMention em = convertMention(m, doc, java.util.UUID.randomUUID().toString(), toks.get(m.getSentenceIdx()));
-      emsb.addToMentionSet(em);
-      entBuilder.addToMentionIdList(em.getUuid());
+    if (coref.getMentions().size() > 0)
+      for (AgigaMention m : coref.getMentions()) {
+        EntityMention em = convertMention(m, doc, java.util.UUID.randomUUID().toString(), toks.get(m.getSentenceIdx()));
+        emsb.addToMentionSet(em);
+        entBuilder.addToMentionIdList(em.getUuid());
+      }
+    else {
+      emsb.setMentionSet(new ArrayList<EntityMention>());
     }
 
     return entBuilder;
