@@ -3,7 +3,6 @@ package edu.jhu.hlt.concrete.agiga;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.List;
 
 import org.apache.thrift.TSerializer;
@@ -48,7 +47,7 @@ public class AgigaConverter {
 
   public static final String toolName = "Annotated Gigaword Pipeline";
   public static final String corpusName = "Annotated Gigaword";
-  public static final long annotationTime = Calendar.getInstance().getTimeInMillis() / 1000;
+  public static final long annotationTime = System.currentTimeMillis();
 
   private static final Logger logger = LoggerFactory.getLogger(AgigaConverter.class);
 
@@ -62,9 +61,9 @@ public class AgigaConverter {
       fullToolName += addToToolName;
 
     AnnotationMetadata md = new AnnotationMetadata();
-    md.tool = fullToolName;
-    md.timestamp = annotationTime;
-    md.confidence = 1f;
+    md.setTool(fullToolName);
+    md.setTimestamp(annotationTime);
+    md.setConfidence(1f);
     return md;
   }
 
@@ -165,17 +164,21 @@ public class AgigaConverter {
     DependencyParse db = new DependencyParse();
     db.uuid = java.util.UUID.randomUUID().toString();
     db.metadata = metadata(" " + name + " http://nlp.stanford.edu/software/dependencies_manual.pdf");
-
-    for (AgigaTypedDependency ad : deps) {
-      Dependency depB = new Dependency(ad.getDepIdx());
-      depB.edgeType = ad.getType();
-
-      if (ad.getGovIdx() >= 0) // else ROOT
-        depB.setGov(ad.getGovIdx());
-
-      db.addToDependencyList(depB);
+    
+    if (!deps.isEmpty()) {
+      for (AgigaTypedDependency ad : deps) {
+        Dependency depB = new Dependency(ad.getDepIdx());
+        depB.edgeType = ad.getType();
+  
+        if (ad.getGovIdx() >= 0) // else ROOT
+          depB.setGov(ad.getGovIdx());
+  
+        db.addToDependencyList(depB);
+      }
+    } else {
+      db.dependencyList = new ArrayList<Dependency>();
     }
-
+    
     return db;
   }
 
@@ -345,7 +348,6 @@ public class AgigaConverter {
       System.out.println("e.g., " + AgigaConverter.class.getSimpleName() + " /my/output/dir true /my/agiga/doc.xml.gz");
       System.exit(1);
     }
-
 
     String rawExtractionString = args[1];
     boolean rawExtraction = Boolean.parseBoolean(rawExtractionString);
