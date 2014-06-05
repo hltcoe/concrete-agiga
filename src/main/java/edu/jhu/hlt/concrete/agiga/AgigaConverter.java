@@ -182,7 +182,7 @@ public class AgigaConverter {
     return db;
   }
 
-  public static Tokenization convertTokenization(AgigaSentence sent) {
+  public static Tokenization convertTokenization(AgigaSentence sent, int charOffset) {
 
     TokenTagging lemma = new TokenTagging();
     lemma.setUuid(java.util.UUID.randomUUID().toString());
@@ -205,7 +205,6 @@ public class AgigaConverter {
 
     tb.setUuid(tUuid).setMetadata(metadata(" http://nlp.stanford.edu/software/tokensregex.shtml")).setKind(TokenizationKind.TOKEN_LIST);
 
-    int charOffset = 0;
     int tokId = 0;
     for (AgigaToken tok : sent.getTokens()) {
 
@@ -238,7 +237,7 @@ public class AgigaConverter {
   }
 
   public static Sentence convertSentence(AgigaSentence sent, int charsFromStartOfCommunication, List<Tokenization> addTo) {
-    Tokenization tokenization = convertTokenization(sent);
+    Tokenization tokenization = convertTokenization(sent, charsFromStartOfCommunication);
     addTo.add(tokenization); // one tokenization per sentence
     Sentence concSent = new Sentence().setUuid(java.util.UUID.randomUUID().toString())
         .setTextSpan(new TextSpan().setStart(charsFromStartOfCommunication).setEnding(charsFromStartOfCommunication + flattenText(sent).length()));
