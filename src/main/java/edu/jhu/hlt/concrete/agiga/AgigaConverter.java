@@ -39,6 +39,8 @@ import edu.jhu.hlt.concrete.TokenRefSequence;
 import edu.jhu.hlt.concrete.TokenTagging;
 import edu.jhu.hlt.concrete.Tokenization;
 import edu.jhu.hlt.concrete.TokenizationKind;
+import edu.jhu.hlt.concrete.UUID;
+import edu.jhu.hlt.concrete.util.ConcreteUUIDFactory;
 import edu.stanford.nlp.trees.HeadFinder;
 import edu.stanford.nlp.trees.SemanticHeadFinder;
 import edu.stanford.nlp.trees.Tree;
@@ -50,12 +52,14 @@ public class AgigaConverter {
   public static final long annotationTime = System.currentTimeMillis();
 
   private static final Logger logger = LoggerFactory.getLogger(AgigaConverter.class);
+  
+  private final ConcreteUUIDFactory idF = new ConcreteUUIDFactory();
 
-  public static AnnotationMetadata metadata() {
+  public AnnotationMetadata metadata() {
     return metadata(null);
   }
 
-  public static AnnotationMetadata metadata(String addToToolName) {
+  public AnnotationMetadata metadata(String addToToolName) {
     String fullToolName = toolName;
     if (addToToolName != null)
       fullToolName += addToToolName;
@@ -67,7 +71,7 @@ public class AgigaConverter {
     return md;
   }
 
-  public static String flattenText(AgigaDocument doc) {
+  public String flattenText(AgigaDocument doc) {
     StringBuilder sb = new StringBuilder();
     for (AgigaSentence sent : doc.getSents()) {
       sb.append(flattenText(sent));
@@ -76,17 +80,17 @@ public class AgigaConverter {
     return sb.toString();
   }
 
-  public static String flattenText(AgigaSentence sent) {
+  public String flattenText(AgigaSentence sent) {
     StringBuilder sb = new StringBuilder();
     for (AgigaToken tok : sent.getTokens())
       sb.append(tok.getWord() + " ");
     return sb.toString().trim();
   }
 
-  public static Parse stanford2concrete(Tree root, String tokenizationUUID) {
+  public Parse stanford2concrete(Tree root, UUID tokenizationUUID) {
     int left = 0;
     int right = root.getLeaves().size();
-	int[] idCounter = new int[]{0};
+    int[] idCounter = new int[]{0};
     /*
      * this was a bug in stanford nlp; if you have a terminal with a space in it, like (CD 2 1/2)
      * stanford's getLeaves() will return Trees for 2 and 1/2
@@ -96,7 +100,7 @@ public class AgigaConverter {
      */
 
     Parse p = new Parse();
-    p.uuid = java.util.UUID.randomUUID().toString();
+    p.uuid = this.idF.getConcreteUUID();
     p.metadata = metadata(" http://www.aclweb.org/anthology-new/D/D10/D10-1002.pdf");
     s2cHelper(root, idCounter, left, right, p, tokenizationUUID);
     return p;
@@ -107,7 +111,7 @@ public class AgigaConverter {
    */
   private static final HeadFinder HEAD_FINDER = new SemanticHeadFinder();
 
-  private static int s2cHelper(Tree root, int[] idCounter, int left, int right, Parse p, String tokenizationUUID) {
+  private int s2cHelper(Tree root, int[] idCounter, int left, int right, Parse p, UUID tokenizationUUID) {
     assert(idCounter.length == 1);
     Constituent cb = new Constituent();
     cb.id = idCounter[0]++;
@@ -140,11 +144,11 @@ public class AgigaConverter {
     return cb.id;
   }
 
-  public static TokenRefSequence extractTokenRefSequence(AgigaMention m, String uuid) {
+  public TokenRefSequence extractTokenRefSequence(AgigaMention m, UUID uuid) {
     return extractTokenRefSequence(m.getStartTokenIdx(), m.getEndTokenIdx(), m.getHeadTokenIdx(), uuid);
   }
 
-  public static TokenRefSequence extractTokenRefSequence(int left, int right, Integer head, String uuid) {
+  public TokenRefSequence extractTokenRefSequence(int left, int right, Integer head, UUID uuid) {
     TokenRefSequence tb = new TokenRefSequence();
     tb.tokenizationId = uuid;
 
@@ -160,9 +164,9 @@ public class AgigaConverter {
   /**
    * name is the type of dependencies, e.g. "col-deps" or "col-ccproc-deps"
    */
-  public static DependencyParse convertDependencyParse(List<AgigaTypedDependency> deps, String name) {
+  public DependencyParse convertDependencyParse(List<AgigaTypedDependency> deps, String name) {
     DependencyParse db = new DependencyParse();
-    db.uuid = java.util.UUID.randomUUID().toString();
+    db.uuid = this.idF.getConcreteUUID();
     db.metadata = metadata(" " + name + " http://nlp.stanford.edu/software/dependencies_manual.pdf");
     
     if (!deps.isEmpty()) {
@@ -182,18 +186,17 @@ public class AgigaConverter {
     return db;
   }
 
-  public static Tokenization convertTokenization(AgigaSentence sent, int charOffset) {
-
+  public Tokenization convertTokenization(AgigaSentence sent, int charOffset) {
     TokenTagging lemma = new TokenTagging();
-    lemma.setUuid(java.util.UUID.randomUUID().toString());
+    lemma.setUuid(this.idF.getConcreteUUID());
     lemma.setMetadata(metadata());
 
     TokenTagging pos = new TokenTagging();
-    pos.setUuid(java.util.UUID.randomUUID().toString());
+    pos.setUuid(this.idF.getConcreteUUID());
     pos.setMetadata(metadata());
 
     TokenTagging ner = new TokenTagging();
-    ner.setUuid(java.util.UUID.randomUUID().toString());
+    ner.setUuid(this.idF.getConcreteUUID());
     ner.setMetadata(metadata());
 
     // TokenTagging.Builder normNerBuilder = TokenTagging.newBuilder()
@@ -201,7 +204,7 @@ public class AgigaConverter {
     // .setMetadata(metadata());
 
     Tokenization tb = new Tokenization();
-    String tUuid = java.util.UUID.randomUUID().toString();
+    UUID tUuid = this.idF.getConcreteUUID();
 
     tb.setUuid(tUuid).setMetadata(metadata(" http://nlp.stanford.edu/software/tokensregex.shtml")).setKind(TokenizationKind.TOKEN_LIST);
 
@@ -229,25 +232,25 @@ public class AgigaConverter {
     return tb;
   }
 
-  public static TaggedToken makeTaggedToken(String tag, int tokId) {
+  public TaggedToken makeTaggedToken(String tag, int tokId) {
     return new TaggedToken()
       .setTokenIndex(tokId)
       .setTag(tag)
       .setConfidence(1f);
   }
 
-  public static Sentence convertSentence(AgigaSentence sent, int charsFromStartOfCommunication, List<Tokenization> addTo) {
+  public Sentence convertSentence(AgigaSentence sent, int charsFromStartOfCommunication, List<Tokenization> addTo) {
     Tokenization tokenization = convertTokenization(sent, charsFromStartOfCommunication);
     addTo.add(tokenization); // one tokenization per sentence
-    Sentence concSent = new Sentence().setUuid(java.util.UUID.randomUUID().toString())
+    Sentence concSent = new Sentence().setUuid(this.idF.getConcreteUUID())
         .setTextSpan(new TextSpan().setStart(charsFromStartOfCommunication).setEnding(charsFromStartOfCommunication + flattenText(sent).length()));
     concSent.addToTokenizationList(tokenization);
     return concSent;
   }
 
-  public static SentenceSegmentation sentenceSegment(AgigaDocument doc, String sectionId, List<Tokenization> addTo) {
+  public SentenceSegmentation sentenceSegment(AgigaDocument doc, UUID sectionId, List<Tokenization> addTo) {
 
-    SentenceSegmentation sb = new SentenceSegmentation().setUuid(java.util.UUID.randomUUID().toString()).setMetadata(
+    SentenceSegmentation sb = new SentenceSegmentation().setUuid(this.idF.getConcreteUUID()).setMetadata(
         metadata(" Splitta http://www.aclweb.org/anthology-new/N/N09/N09-2061.pdf")).setSectionId(sectionId);
     int charsFromStartOfCommunication = 0; // communication only has one section
     for (AgigaSentence sentence : doc.getSents()) {
@@ -257,11 +260,11 @@ public class AgigaConverter {
     return sb;
   }
 
-  public static SectionSegmentation sectionSegment(AgigaDocument doc, String rawText, List<Tokenization> addTo) {
+  public SectionSegmentation sectionSegment(AgigaDocument doc, String rawText, List<Tokenization> addTo) {
 
-    SectionSegmentation ss = new SectionSegmentation().setUuid(java.util.UUID.randomUUID().toString()).setMetadata(metadata());
+    SectionSegmentation ss = new SectionSegmentation().setUuid(this.idF.getConcreteUUID()).setMetadata(metadata());
     Section concSect = new Section()
-        .setUuid(java.util.UUID.randomUUID().toString())
+        .setUuid(this.idF.getConcreteUUID())
         .setKind("Passage")
         .setTextSpan(new TextSpan()
                      .setStart(0)
@@ -271,7 +274,7 @@ public class AgigaConverter {
     return ss;
   }
 
-  public static String extractMentionString(AgigaMention m, AgigaDocument doc) {
+  public String extractMentionString(AgigaMention m, AgigaDocument doc) {
     List<AgigaToken> sentence = doc.getSents().get(m.getSentenceIdx()).getTokens();
     StringBuilder sb = new StringBuilder();
     for (int i = m.getStartTokenIdx(); i < m.getEndTokenIdx(); i++) {
@@ -282,10 +285,10 @@ public class AgigaConverter {
     return sb.toString();
   }
 
-  public static EntityMention convertMention(AgigaMention m, AgigaDocument doc, String corefSet, Tokenization tokenization) {
+  public EntityMention convertMention(AgigaMention m, AgigaDocument doc, UUID corefSet, Tokenization tokenization) {
     String mstring = extractMentionString(m, doc);
 
-    return new EntityMention().setUuid(java.util.UUID.randomUUID().toString()).setTokens(extractTokenRefSequence(m, tokenization.getUuid()))
+    return new EntityMention().setUuid(this.idF.getConcreteUUID()).setTokens(extractTokenRefSequence(m, tokenization.getUuid()))
     .setEntityType("Unknown").setPhraseType("Name") // TODO warn users that this may not be accurate
         .setConfidence(1f).setText(mstring); // TODO merge this an method below
 
@@ -294,13 +297,13 @@ public class AgigaConverter {
   /**
    * adds EntityMentions to EnityMentionSet.Builder creates and returns an Entity
    */
-  public static Entity convertCoref(EntityMentionSet emsb, AgigaCoref coref, AgigaDocument doc, List<Tokenization> toks) {
+  public Entity convertCoref(EntityMentionSet emsb, AgigaCoref coref, AgigaDocument doc, List<Tokenization> toks) {
 
     Entity entBuilder = new Entity()
-      .setUuid(java.util.UUID.randomUUID().toString())
+      .setUuid(this.idF.getConcreteUUID())
       .setType("Other");
     for (AgigaMention m : coref.getMentions()) {
-      EntityMention em = convertMention(m, doc, java.util.UUID.randomUUID().toString(), toks.get(m.getSentenceIdx()));
+      EntityMention em = convertMention(m, doc, this.idF.getConcreteUUID(), toks.get(m.getSentenceIdx()));
       emsb.addToMentionSet(em);
       entBuilder.addToMentionIdList(em.getUuid());
     }
@@ -308,16 +311,16 @@ public class AgigaConverter {
     return entBuilder;
   }
 
-  public static Communication convertDoc(AgigaDocument doc) {
+  public Communication convertDoc(AgigaDocument doc) {
     Communication comm = extractRawCommunication(doc);
     List<Tokenization> toks = new ArrayList<Tokenization>();
     comm.addToSectionSegmentations(sectionSegment(doc, comm.text, toks));
     // this must occur last so that the tokenizations have been added to toks
     List<EntityMention> mentionSet = new ArrayList<EntityMention>();
-    EntityMentionSet emsb = new EntityMentionSet().setUuid(java.util.UUID.randomUUID().toString()).setMetadata(
+    EntityMentionSet emsb = new EntityMentionSet().setUuid(this.idF.getConcreteUUID()).setMetadata(
         metadata(" http://nlp.stanford.edu/pubs/conllst2011-coref.pdf")).setMentionSet(mentionSet);
     List<Entity> entityList = new ArrayList<Entity>();
-    EntitySet esb = new EntitySet().setUuid(java.util.UUID.randomUUID().toString()).setMetadata(metadata(" http://nlp.stanford.edu/pubs/conllst2011-coref.pdf")).setEntityList(entityList);
+    EntitySet esb = new EntitySet().setUuid(this.idF.getConcreteUUID()).setMetadata(metadata(" http://nlp.stanford.edu/pubs/conllst2011-coref.pdf")).setEntityList(entityList);
     for (AgigaCoref coref : doc.getCorefs()) {
       Entity e = convertCoref(emsb, coref, doc, toks);
       esb.addToEntityList(e);
@@ -329,12 +332,12 @@ public class AgigaConverter {
     return comm;
   }
 
-  public static Communication extractRawCommunication(AgigaDocument doc) {
+  public Communication extractRawCommunication(AgigaDocument doc) {
     Communication comm = new Communication();
     comm.id = doc.getDocId();
     comm.text = flattenText(doc);
     comm.type = "News";
-    comm.uuid = java.util.UUID.randomUUID().toString();
+    comm.uuid = this.idF.getConcreteUUID();
     return comm;
   }
 
@@ -363,6 +366,7 @@ public class AgigaConverter {
 
     long start = System.currentTimeMillis();
 
+    AgigaConverter ac = new AgigaConverter();
     TSerializer serializer = new TSerializer(new TBinaryProtocol.Factory());
 
     int c = 0;
@@ -389,9 +393,9 @@ public class AgigaConverter {
         try (FileOutputStream fos = new FileOutputStream(outFile)) {
           Communication comm;
           if (rawExtraction)
-            comm = extractRawCommunication(doc);
+            comm = ac.extractRawCommunication(doc);
           else
-            comm = convertDoc(doc);
+            comm = ac.convertDoc(doc);
 
           byte[] commBytes = serializer.serialize(comm);
           fos.write(commBytes);

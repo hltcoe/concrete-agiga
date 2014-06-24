@@ -64,7 +64,7 @@ public class ConstituentTest {
     StreamingDocumentReader docReader = new StreamingDocumentReader(testDataPath.toString(), new AgigaPrefs());
     assertTrue(docReader.hasNext());
     AgigaDocument firstDoc = docReader.next();
-    Communication c = AgigaConverter.convertDoc(firstDoc);
+    Communication c = new AgigaConverter().convertDoc(firstDoc);
     SuperCommunication sc = new SuperCommunication(c);
     Tokenization t = sc.firstTokenization();
     Parse p = t.getParse();
@@ -82,7 +82,7 @@ public class ConstituentTest {
     StreamingDocumentReader docReader = new StreamingDocumentReader(testDataPath.toString(), new AgigaPrefs());
     assertTrue(docReader.hasNext());
     AgigaDocument firstDoc = docReader.next();
-    Communication c = AgigaConverter.convertDoc(firstDoc);
+    Communication c = new AgigaConverter().convertDoc(firstDoc);
     new Serialization().toBytes(c);
   }
 }
