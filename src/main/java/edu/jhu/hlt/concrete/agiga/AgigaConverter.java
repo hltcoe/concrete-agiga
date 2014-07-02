@@ -35,6 +35,7 @@ import edu.jhu.hlt.concrete.SentenceSegmentation;
 import edu.jhu.hlt.concrete.TaggedToken;
 import edu.jhu.hlt.concrete.TextSpan;
 import edu.jhu.hlt.concrete.Token;
+import edu.jhu.hlt.concrete.TokenList;
 import edu.jhu.hlt.concrete.TokenRefSequence;
 import edu.jhu.hlt.concrete.TokenTagging;
 import edu.jhu.hlt.concrete.Tokenization;
@@ -210,13 +211,15 @@ public class AgigaConverter {
 
     int tokId = 0;
     for (AgigaToken tok : sent.getTokens()) {
-
       int curTokId = tokId++;
 
       // token
-      tb.getTokenList().addToTokens(new Token().setTokenIndex(curTokId).setText(tok.getWord())
+      //TokenList tl = tb.getTokenList();
+      TokenList tl = new TokenList();
+      tl.addToTokens(new Token().setTokenIndex(curTokId).setText(tok.getWord())
           .setTextSpan(new TextSpan().setStart(charOffset).setEnding(charOffset + tok.getWord().length())));
 
+      tb.setTokenList(tl);
       // token annotations
       lemma.addToTaggedTokenList(makeTaggedToken(tok.getLemma(), curTokId));
       pos.addToTaggedTokenList(makeTaggedToken(tok.getPosTag(), curTokId));
@@ -225,6 +228,7 @@ public class AgigaConverter {
 
       charOffset += tok.getWord().length() + 1;
     }
+    
     tb.setLemmaList(lemma).setPosTagList(pos).setNerTagList(ner).setParse(stanford2concrete(sent.getStanfordContituencyTree(), tUuid));
     tb.addToDependencyParseList(convertDependencyParse(sent.getBasicDeps(), "basic-deps"));
     tb.addToDependencyParseList(convertDependencyParse(sent.getColDeps(), "col-deps"));
