@@ -214,7 +214,7 @@ public class AgigaConverter {
       int curTokId = tokId++;
 
       // token
-      tb.addToTokenList(new Token().setTokenIndex(curTokId).setText(tok.getWord())
+      tb.getTokenList().addToTokens(new Token().setTokenIndex(curTokId).setText(tok.getWord())
           .setTextSpan(new TextSpan().setStart(charOffset).setEnding(charOffset + tok.getWord().length())));
 
       // token annotations

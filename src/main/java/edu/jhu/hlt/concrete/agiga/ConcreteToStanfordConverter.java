@@ -74,9 +74,9 @@ public class ConcreteToStanfordConverter {
         Tokenization tokens = sent.getTokenizationList().get(0);
         TokenTagging posTags = tokens.getPosTagList();
         List<WordLemmaTag> labels = new ArrayList<WordLemmaTag>();
-        List<Token> tokenList = tokens.getTokenList();
+        List<Token> tokenList = tokens.getTokenList().getTokens();
         List<TaggedToken> ttList = posTags.getTaggedTokenList();
-        for (int i = 0; i < tokens.getTokenListSize(); i++) {
+        for (int i = 0; i < tokens.getTokenList().getTokensSize(); i++) {
             Token ct = tokenList.get(i);
             TaggedToken postt = ttList.get(i);
             if (ct.getTokenIndex() != postt.getTokenIndex()) {
