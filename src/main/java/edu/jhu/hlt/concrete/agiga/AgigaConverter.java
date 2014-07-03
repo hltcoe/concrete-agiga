@@ -56,6 +56,21 @@ public class AgigaConverter {
   
   private final ConcreteUUIDFactory idF = new ConcreteUUIDFactory();
 
+  private boolean addTextSpans;
+
+  /**
+   * @param addTextSpans Because textSpans are merely "provenance" spans, and serve
+   *        merely to indicate the original span that gave rise to a particular
+   *        annotation span, we don't always want to add text spans.
+   */
+  public AgigaConverter(boolean addTextSpans) {
+      this.addTextSpans = addTextSpans;
+  }
+
+  public boolean isAddingTextSpans(){
+      return addTextSpans;
+  }
+
   public AnnotationMetadata metadata() {
     return metadata(null);
   }
@@ -187,7 +202,7 @@ public class AgigaConverter {
     return db;
   }
 
-  public Tokenization convertTokenization(AgigaSentence sent, int charOffset) {
+ public Tokenization convertTokenization(AgigaSentence sent, int charOffset) {
     TokenTagging lemma = new TokenTagging();
     lemma.setUuid(this.idF.getConcreteUUID());
     lemma.setMetadata(metadata());
@@ -216,8 +231,11 @@ public class AgigaConverter {
       // token
       //TokenList tl = tb.getTokenList();
       TokenList tl = new TokenList();
-      tl.addToTokens(new Token().setTokenIndex(curTokId).setText(tok.getWord())
-          .setTextSpan(new TextSpan().setStart(charOffset).setEnding(charOffset + tok.getWord().length())));
+      Token ttok = new Token().setTokenIndex(curTokId).setText(tok.getWord());
+      if(addTextSpans) {
+          ttok.setTextSpan(new TextSpan().setStart(charOffset).setEnding(charOffset + tok.getWord().length()));
+      }
+      tl.addToTokens(ttok);
 
       tb.setTokenList(tl);
       // token annotations
@@ -246,8 +264,10 @@ public class AgigaConverter {
   public Sentence convertSentence(AgigaSentence sent, int charsFromStartOfCommunication, List<Tokenization> addTo) {
     Tokenization tokenization = convertTokenization(sent, charsFromStartOfCommunication);
     addTo.add(tokenization); // one tokenization per sentence
-    Sentence concSent = new Sentence().setUuid(this.idF.getConcreteUUID())
-        .setTextSpan(new TextSpan().setStart(charsFromStartOfCommunication).setEnding(charsFromStartOfCommunication + flattenText(sent).length()));
+    Sentence concSent = new Sentence().setUuid(this.idF.getConcreteUUID());
+    if(addTextSpans){
+        concSent.setTextSpan(new TextSpan().setStart(charsFromStartOfCommunication).setEnding(charsFromStartOfCommunication + flattenText(sent).length()));
+    }
     concSent.addToTokenizationList(tokenization);
     return concSent;
   }
@@ -269,10 +289,12 @@ public class AgigaConverter {
     SectionSegmentation ss = new SectionSegmentation().setUuid(this.idF.getConcreteUUID()).setMetadata(metadata());
     Section concSect = new Section()
         .setUuid(this.idF.getConcreteUUID())
-        .setKind("Passage")
-        .setTextSpan(new TextSpan()
+        .setKind("Passage");
+    if(addTextSpans){
+        concSect.setTextSpan(new TextSpan()
                      .setStart(0)
                      .setEnding(rawText.length()));
+    }
     concSect.addToSentenceSegmentation(sentenceSegment(doc, concSect.getUuid(), addTo));
     ss.addToSectionList(concSect);
     return ss;
@@ -370,7 +392,10 @@ public class AgigaConverter {
 
     long start = System.currentTimeMillis();
 
-    AgigaConverter ac = new AgigaConverter();
+    boolean addTextSpans = true;
+
+    AgigaConverter ac = new AgigaConverter(addTextSpans);
+
     TSerializer serializer = new TSerializer(new TBinaryProtocol.Factory());
 
     int c = 0;
