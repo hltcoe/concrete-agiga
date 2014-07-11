@@ -202,7 +202,15 @@ public class AgigaConverter {
     return db;
   }
 
- public Tokenization convertTokenization(AgigaSentence sent, int charOffset) {
+  /**
+   * Create a tokenization based on the given sentence. If we're looking to add
+   * textspans, then we will first default to using the token character offsets
+   * within the sentence itself if charOffset is negative. 
+   * If those are not set, then we will use the 
+   * provided charOffset, as long as it is non-negative. Otherwise, this will
+   * throw a runtime exception.
+   */
+  public Tokenization convertTokenization(AgigaSentence sent, int charOffset) {
     TokenTagging lemma = new TokenTagging();
     lemma.setUuid(this.idF.getConcreteUUID());
     lemma.setMetadata(metadata());
@@ -222,6 +230,8 @@ public class AgigaConverter {
     Tokenization tb = new Tokenization();
     UUID tUuid = this.idF.getConcreteUUID();
 
+    boolean trustGivenOffset = charOffset >= 0;
+
     tb.setUuid(tUuid).setMetadata(metadata(" http://nlp.stanford.edu/software/tokensregex.shtml")).setKind(TokenizationKind.TOKEN_LIST);
 
     int tokId = 0;
@@ -233,7 +243,8 @@ public class AgigaConverter {
       TokenList tl = new TokenList();
       Token ttok = new Token().setTokenIndex(curTokId).setText(tok.getWord());
       if(addTextSpans) {
-          if(tok.getCharOffBegin() >= 0 && tok.getCharOffEnd() > tok.getCharOffBegin()){
+          if(charOffset < 0 && 
+             tok.getCharOffBegin() >= 0 && tok.getCharOffEnd() > tok.getCharOffBegin()){
               ttok.setTextSpan(new TextSpan()
                                .setStart(tok.getCharOffBegin())
                                .setEnding(tok.getCharOffEnd()));
@@ -254,8 +265,10 @@ public class AgigaConverter {
       pos.addToTaggedTokenList(makeTaggedToken(tok.getPosTag(), curTokId));
       ner.addToTaggedTokenList(makeTaggedToken(tok.getNerTag(), curTokId));
       // normNerBuilder.addTaggedToken(makeTaggedToken(tok.getNormNerTag(), curTokId));
-
-      charOffset += tok.getWord().length() + 1;
+      
+      if(trustGivenOffset){
+          charOffset += tok.getWord().length() + 1;
+      }
     }
     
     tb.setLemmaList(lemma).setPosTagList(pos).setNerTagList(ner).setParse(stanford2concrete(sent.getStanfordContituencyTree(), tUuid));
@@ -272,6 +285,14 @@ public class AgigaConverter {
       .setConfidence(1f);
   }
 
+  /**
+   * Create a concrete sentence based on the agiga sentence. If we're looking to add
+   * textspans, then we will first default to using the token character offsets
+   * within the sentence itself if charsFromStartOfCommunication is negative. 
+   * If those are not set, then we will use the 
+   * provided charsFromStartOfCommunication, as long as it is non-negative. 
+   * Otherwise, this will throw a runtime exception.
+   */
   public Sentence convertSentence(AgigaSentence sent, int charsFromStartOfCommunication, List<Tokenization> addTo) {
     Tokenization tokenization = convertTokenization(sent, charsFromStartOfCommunication);
     addTo.add(tokenization); // one tokenization per sentence
@@ -279,7 +300,8 @@ public class AgigaConverter {
     if(addTextSpans){
         AgigaToken firstToken = sent.getTokens().get(0);
         AgigaToken lastToken  = sent.getTokens().get(sent.getTokens().size() - 1);
-        if(firstToken.getCharOffBegin() >= 0 && lastToken.getCharOffEnd() > firstToken.getCharOffBegin()){
+        if(charsFromStartOfCommunication < 0 && 
+           firstToken.getCharOffBegin() >= 0 && lastToken.getCharOffEnd() > firstToken.getCharOffBegin()){
             concSent.setTextSpan(new TextSpan()
                                  .setStart(firstToken.getCharOffBegin())
                                  .setEnding(lastToken.getCharOffEnd()));
