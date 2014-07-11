@@ -235,12 +235,10 @@ public class AgigaConverter {
     tb.setUuid(tUuid).setMetadata(metadata(" http://nlp.stanford.edu/software/tokensregex.shtml")).setKind(TokenizationKind.TOKEN_LIST);
 
     int tokId = 0;
+    TokenList tl = new TokenList();
     for (AgigaToken tok : sent.getTokens()) {
       int curTokId = tokId++;
 
-      // token
-      //TokenList tl = tb.getTokenList();
-      TokenList tl = new TokenList();
       Token ttok = new Token().setTokenIndex(curTokId).setText(tok.getWord());
       if(addTextSpans) {
           if(charOffset < 0 && 
@@ -258,8 +256,6 @@ public class AgigaConverter {
           }
       }
       tl.addToTokens(ttok);
-
-      tb.setTokenList(tl);
       // token annotations
       lemma.addToTaggedTokenList(makeTaggedToken(tok.getLemma(), curTokId));
       pos.addToTaggedTokenList(makeTaggedToken(tok.getPosTag(), curTokId));
@@ -270,6 +266,8 @@ public class AgigaConverter {
           charOffset += tok.getWord().length() + 1;
       }
     }
+
+    tb.setTokenList(tl);
     
     tb.setLemmaList(lemma).setPosTagList(pos).setNerTagList(ner).setParse(stanford2concrete(sent.getStanfordContituencyTree(), tUuid));
     tb.addToDependencyParseList(convertDependencyParse(sent.getBasicDeps(), "basic-deps"));
