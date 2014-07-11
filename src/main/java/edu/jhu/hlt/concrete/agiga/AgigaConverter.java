@@ -233,7 +233,18 @@ public class AgigaConverter {
       TokenList tl = new TokenList();
       Token ttok = new Token().setTokenIndex(curTokId).setText(tok.getWord());
       if(addTextSpans) {
-          ttok.setTextSpan(new TextSpan().setStart(charOffset).setEnding(charOffset + tok.getWord().length()));
+          if(tok.getCharOffBegin() >= 0 && tok.getCharOffEnd() > tok.getCharOffBegin()){
+              ttok.setTextSpan(new TextSpan()
+                               .setStart(tok.getCharOffBegin())
+                               .setEnding(tok.getCharOffEnd()));
+          } else {
+              if(charOffset < 0){
+                  throw new RuntimeException("Bad character offset of " + charOffset + " for sentence " + sent);
+              }
+              ttok.setTextSpan(new TextSpan()
+                               .setStart(charOffset)
+                               .setEnding(charOffset + tok.getWord().length()));
+          }
       }
       tl.addToTokens(ttok);
 
@@ -266,7 +277,20 @@ public class AgigaConverter {
     addTo.add(tokenization); // one tokenization per sentence
     Sentence concSent = new Sentence().setUuid(this.idF.getConcreteUUID());
     if(addTextSpans){
-        concSent.setTextSpan(new TextSpan().setStart(charsFromStartOfCommunication).setEnding(charsFromStartOfCommunication + flattenText(sent).length()));
+        AgigaToken firstToken = sent.getTokens().get(0);
+        AgigaToken lastToken  = sent.getTokens().get(sent.getTokens().size() - 1);
+        if(firstToken.getCharOffBegin() >= 0 && lastToken.getCharOffEnd() > firstToken.getCharOffBegin()){
+            concSent.setTextSpan(new TextSpan()
+                                 .setStart(firstToken.getCharOffBegin())
+                                 .setEnding(lastToken.getCharOffEnd()));
+        } else {
+            if(charsFromStartOfCommunication < 0){
+                throw new RuntimeException("bad character offset of " + charsFromStartOfCommunication + " for converting sent " + sent);
+            }
+            concSent.setTextSpan(new TextSpan()
+                                 .setStart(charsFromStartOfCommunication)
+                                 .setEnding(charsFromStartOfCommunication + flattenText(sent).length()));
+        }
     }
     concSent.addToTokenizationList(tokenization);
     return concSent;
@@ -284,6 +308,11 @@ public class AgigaConverter {
     return sb;
   }
 
+  /**
+   * Note: this assumes that it will be called only once: that is, that there is only one 
+   * section in the entire agiga document. Therefore, the provenance span will span the 
+   * entire text.
+   */
   public SectionSegmentation sectionSegment(AgigaDocument doc, String rawText, List<Tokenization> addTo) {
 
     SectionSegmentation ss = new SectionSegmentation().setUuid(this.idF.getConcreteUUID()).setMetadata(metadata());
@@ -292,8 +321,8 @@ public class AgigaConverter {
         .setKind("Passage");
     if(addTextSpans){
         concSect.setTextSpan(new TextSpan()
-                     .setStart(0)
-                     .setEnding(rawText.length()));
+                             .setStart(0)
+                             .setEnding(rawText.length()));
     }
     concSect.addToSentenceSegmentation(sentenceSegment(doc, concSect.getUuid(), addTo));
     ss.addToSectionList(concSect);
