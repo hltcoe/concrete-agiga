@@ -202,7 +202,15 @@ public class AgigaConverter {
     return db;
   }
 
- public Tokenization convertTokenization(AgigaSentence sent, int charOffset) {
+  /**
+   * Create a tokenization based on the given sentence. If we're looking to add
+   * textspans, then we will first default to using the token character offsets
+   * within the sentence itself if charOffset is negative. 
+   * If those are not set, then we will use the 
+   * provided charOffset, as long as it is non-negative. Otherwise, this will
+   * throw a runtime exception.
+   */
+  public Tokenization convertTokenization(AgigaSentence sent, int charOffset) {
     TokenTagging lemma = new TokenTagging();
     lemma.setUuid(this.idF.getConcreteUUID());
     lemma.setMetadata(metadata());
@@ -222,30 +230,44 @@ public class AgigaConverter {
     Tokenization tb = new Tokenization();
     UUID tUuid = this.idF.getConcreteUUID();
 
+    boolean trustGivenOffset = charOffset >= 0;
+
     tb.setUuid(tUuid).setMetadata(metadata(" http://nlp.stanford.edu/software/tokensregex.shtml")).setKind(TokenizationKind.TOKEN_LIST);
 
     int tokId = 0;
+    TokenList tl = new TokenList();
     for (AgigaToken tok : sent.getTokens()) {
       int curTokId = tokId++;
 
-      // token
-      //TokenList tl = tb.getTokenList();
-      TokenList tl = new TokenList();
       Token ttok = new Token().setTokenIndex(curTokId).setText(tok.getWord());
       if(addTextSpans) {
-          ttok.setTextSpan(new TextSpan().setStart(charOffset).setEnding(charOffset + tok.getWord().length()));
+          if(charOffset < 0 && 
+             tok.getCharOffBegin() >= 0 && tok.getCharOffEnd() > tok.getCharOffBegin()){
+              ttok.setTextSpan(new TextSpan()
+                               .setStart(tok.getCharOffBegin())
+                               .setEnding(tok.getCharOffEnd()));
+          } else {
+              if(charOffset < 0){
+                  throw new RuntimeException("Bad character offset of " + charOffset + " for sentence " + sent);
+              }
+              ttok.setTextSpan(new TextSpan()
+                               .setStart(charOffset)
+                               .setEnding(charOffset + tok.getWord().length()));
+          }
       }
       tl.addToTokens(ttok);
-
-      tb.setTokenList(tl);
       // token annotations
       lemma.addToTaggedTokenList(makeTaggedToken(tok.getLemma(), curTokId));
       pos.addToTaggedTokenList(makeTaggedToken(tok.getPosTag(), curTokId));
       ner.addToTaggedTokenList(makeTaggedToken(tok.getNerTag(), curTokId));
       // normNerBuilder.addTaggedToken(makeTaggedToken(tok.getNormNerTag(), curTokId));
-
-      charOffset += tok.getWord().length() + 1;
+      
+      if(trustGivenOffset){
+          charOffset += tok.getWord().length() + 1;
+      }
     }
+
+    tb.setTokenList(tl);
     
     tb.setLemmaList(lemma).setPosTagList(pos).setNerTagList(ner).setParse(stanford2concrete(sent.getStanfordContituencyTree(), tUuid));
     tb.addToDependencyParseList(convertDependencyParse(sent.getBasicDeps(), "basic-deps"));
@@ -261,12 +283,34 @@ public class AgigaConverter {
       .setConfidence(1f);
   }
 
+  /**
+   * Create a concrete sentence based on the agiga sentence. If we're looking to add
+   * textspans, then we will first default to using the token character offsets
+   * within the sentence itself if charsFromStartOfCommunication is negative. 
+   * If those are not set, then we will use the 
+   * provided charsFromStartOfCommunication, as long as it is non-negative. 
+   * Otherwise, this will throw a runtime exception.
+   */
   public Sentence convertSentence(AgigaSentence sent, int charsFromStartOfCommunication, List<Tokenization> addTo) {
     Tokenization tokenization = convertTokenization(sent, charsFromStartOfCommunication);
     addTo.add(tokenization); // one tokenization per sentence
     Sentence concSent = new Sentence().setUuid(this.idF.getConcreteUUID());
     if(addTextSpans){
-        concSent.setTextSpan(new TextSpan().setStart(charsFromStartOfCommunication).setEnding(charsFromStartOfCommunication + flattenText(sent).length()));
+        AgigaToken firstToken = sent.getTokens().get(0);
+        AgigaToken lastToken  = sent.getTokens().get(sent.getTokens().size() - 1);
+        if(charsFromStartOfCommunication < 0 && 
+           firstToken.getCharOffBegin() >= 0 && lastToken.getCharOffEnd() > firstToken.getCharOffBegin()){
+            concSent.setTextSpan(new TextSpan()
+                                 .setStart(firstToken.getCharOffBegin())
+                                 .setEnding(lastToken.getCharOffEnd()));
+        } else {
+            if(charsFromStartOfCommunication < 0){
+                throw new RuntimeException("bad character offset of " + charsFromStartOfCommunication + " for converting sent " + sent);
+            }
+            concSent.setTextSpan(new TextSpan()
+                                 .setStart(charsFromStartOfCommunication)
+                                 .setEnding(charsFromStartOfCommunication + flattenText(sent).length()));
+        }
     }
     concSent.addToTokenizationList(tokenization);
     return concSent;
@@ -284,6 +328,11 @@ public class AgigaConverter {
     return sb;
   }
 
+  /**
+   * Note: this assumes that it will be called only once: that is, that there is only one 
+   * section in the entire agiga document. Therefore, the provenance span will span the 
+   * entire text.
+   */
   public SectionSegmentation sectionSegment(AgigaDocument doc, String rawText, List<Tokenization> addTo) {
 
     SectionSegmentation ss = new SectionSegmentation().setUuid(this.idF.getConcreteUUID()).setMetadata(metadata());
@@ -292,8 +341,8 @@ public class AgigaConverter {
         .setKind("Passage");
     if(addTextSpans){
         concSect.setTextSpan(new TextSpan()
-                     .setStart(0)
-                     .setEnding(rawText.length()));
+                             .setStart(0)
+                             .setEnding(rawText.length()));
     }
     concSect.addToSentenceSegmentation(sentenceSegment(doc, concSect.getUuid(), addTo));
     ss.addToSectionList(concSect);
