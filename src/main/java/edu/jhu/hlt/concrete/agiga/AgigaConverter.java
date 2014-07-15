@@ -379,6 +379,10 @@ public class AgigaConverter {
       .setType("Other");
     for (AgigaMention m : coref.getMentions()) {
       EntityMention em = convertMention(m, doc, this.idF.getConcreteUUID(), toks.get(m.getSentenceIdx()));
+      if(m.isRepresentative()){
+          String mentionString = extractMentionString(m, doc);
+          entBuilder.setCanonicalName(mentionString);
+      }
       emsb.addToMentionSet(em);
       entBuilder.addToMentionIdList(em.getUuid());
     }
