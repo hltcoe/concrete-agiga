@@ -116,8 +116,8 @@ public class AgigaConverter {
      */
 
     Parse p = new Parse();
-    p.uuid = this.idF.getConcreteUUID();
-    p.metadata = metadata(" http://www.aclweb.org/anthology-new/D/D10/D10-1002.pdf");
+    p.setUuid(this.idF.getConcreteUUID());
+    p.setMetadata(metadata(" http://www.aclweb.org/anthology-new/D/D10/D10-1002.pdf"));
     s2cHelper(root, idCounter, left, right, p, tokenizationUUID);
     return p;
   }
@@ -130,9 +130,9 @@ public class AgigaConverter {
   private int s2cHelper(Tree root, int[] idCounter, int left, int right, Parse p, UUID tokenizationUUID) {
     assert(idCounter.length == 1);
     Constituent cb = new Constituent();
-    cb.id = idCounter[0]++;
-    cb.tag = root.value();
-    cb.tokenSequence = extractTokenRefSequence(left, right, null, tokenizationUUID);
+    cb.setId(idCounter[0]++);
+    cb.setTag(root.value());
+    cb.setTokenSequence(extractTokenRefSequence(left, right, null, tokenizationUUID));
 
     Tree headTree = root.isLeaf() ? null : HEAD_FINDER.determineHead(root);
     int i = 0, headTreeIdx = -1;
@@ -156,7 +156,7 @@ public class AgigaConverter {
 
     p.addToConstituentList(cb);
     if (!cb.isSetChildList())
-      cb.childList = new ArrayList<>();
+      cb.setChildList(new ArrayList<Integer>());
     return cb.id;
   }
 
@@ -166,12 +166,12 @@ public class AgigaConverter {
 
   public TokenRefSequence extractTokenRefSequence(int left, int right, Integer head, UUID uuid) {
     TokenRefSequence tb = new TokenRefSequence();
-    tb.tokenizationId = uuid;
+    tb.setTokenizationId(uuid);
 
     for (int tid = left; tid < right; tid++) {
       tb.addToTokenIndexList(tid);
       if (head != null && head == tid) {
-        tb.anchorTokenIndex = tid;
+        tb.setAnchorTokenIndex(tid);
       }
     }
     return tb;
@@ -182,13 +182,13 @@ public class AgigaConverter {
    */
   public DependencyParse convertDependencyParse(List<AgigaTypedDependency> deps, String name) {
     DependencyParse db = new DependencyParse();
-    db.uuid = this.idF.getConcreteUUID();
-    db.metadata = metadata(" " + name + " http://nlp.stanford.edu/software/dependencies_manual.pdf");
+    db.setUuid(this.idF.getConcreteUUID());
+    db.setMetadata(metadata(" " + name + " http://nlp.stanford.edu/software/dependencies_manual.pdf"));
     
     if (!deps.isEmpty()) {
       for (AgigaTypedDependency ad : deps) {
         Dependency depB = new Dependency(ad.getDepIdx());
-        depB.edgeType = ad.getType();
+        depB.setEdgeType(ad.getType());
   
         if (ad.getGovIdx() >= 0) // else ROOT
           depB.setGov(ad.getGovIdx());
@@ -196,7 +196,7 @@ public class AgigaConverter {
         db.addToDependencyList(depB);
       }
     } else {
-      db.dependencyList = new ArrayList<Dependency>();
+        db.setDependencyList(new ArrayList<Dependency>());
     }
     
     return db;
@@ -232,7 +232,9 @@ public class AgigaConverter {
 
     boolean trustGivenOffset = charOffset >= 0;
 
-    tb.setUuid(tUuid).setMetadata(metadata(" http://nlp.stanford.edu/software/tokensregex.shtml")).setKind(TokenizationKind.TOKEN_LIST);
+    tb.setUuid(tUuid)
+        .setMetadata(metadata(" http://nlp.stanford.edu/software/tokensregex.shtml"))
+        .setKind(TokenizationKind.TOKEN_LIST);
 
     int tokId = 0;
     TokenList tl = new TokenList();
@@ -413,10 +415,10 @@ public class AgigaConverter {
 
   public Communication extractRawCommunication(AgigaDocument doc) {
     Communication comm = new Communication();
-    comm.id = doc.getDocId();
-    comm.text = flattenText(doc);
-    comm.type = "News";
-    comm.uuid = this.idF.getConcreteUUID();
+    comm.setId(doc.getDocId());
+    comm.setText(flattenText(doc));
+    comm.setType("News");
+    comm.setUuid(this.idF.getConcreteUUID());
     return comm;
   }
 
