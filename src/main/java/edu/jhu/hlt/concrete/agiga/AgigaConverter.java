@@ -321,7 +321,7 @@ public class AgigaConverter {
   public SentenceSegmentation sentenceSegment(AgigaDocument doc, UUID sectionId, List<Tokenization> addTo) {
 
     SentenceSegmentation sb = new SentenceSegmentation().setUuid(this.idF.getConcreteUUID()).setMetadata(
-        metadata(" Splitta http://www.aclweb.org/anthology-new/N/N09/N09-2061.pdf")).setSectionId(sectionId);
+        metadata(" Stanford Sentence Splitting")).setSectionId(sectionId);
     int charsFromStartOfCommunication = 0; // communication only has one section
     for (AgigaSentence sentence : doc.getSents()) {
       sb.addToSentenceList(convertSentence(sentence, charsFromStartOfCommunication, addTo));
