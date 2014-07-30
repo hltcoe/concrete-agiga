@@ -119,6 +119,8 @@ public class AgigaConverter {
     p.setUuid(this.idF.getConcreteUUID());
     p.setMetadata(metadata(" http://www.aclweb.org/anthology-new/D/D10/D10-1002.pdf"));
     s2cHelper(root, idCounter, left, right, p, tokenizationUUID);
+    if(!p.isSetConstituentList())
+        p.setConstituentList(new ArrayList<Constituent>());
     return p;
   }
 
@@ -173,6 +175,10 @@ public class AgigaConverter {
       if (head != null && head == tid) {
         tb.setAnchorTokenIndex(tid);
       }
+    }
+    if(!tb.isSetTokenIndexList()) {
+        logger.warn("TokenIndexList not set -- left = " + left + ", right = " + right + ", uuid = " + uuid + ", head = " + head);
+        tb.setTokenIndexList(new ArrayList<Integer>());
     }
     return tb;
   }
@@ -269,6 +275,10 @@ public class AgigaConverter {
       }
     }
 
+    if(!tl.isSetTokens()) {
+        tl.setTokens(new ArrayList<Token>());
+    }
+
     tb.setTokenList(tl);
     
     tb.setLemmaList(lemma).setPosTagList(pos).setNerTagList(ner).setParse(stanford2concrete(sent.getStanfordContituencyTree(), tUuid));
@@ -327,6 +337,7 @@ public class AgigaConverter {
       sb.addToSentenceList(convertSentence(sentence, charsFromStartOfCommunication, addTo));
       charsFromStartOfCommunication += flattenText(sentence).length() + 1; // +1 for newline at end of sentence
     }
+    if(!sb.isSetSentenceList()) sb.setSentenceList(new ArrayList<Sentence>());
     return sb;
   }
 
@@ -366,9 +377,8 @@ public class AgigaConverter {
     String mstring = extractMentionString(m, doc);
 
     return new EntityMention().setUuid(this.idF.getConcreteUUID()).setTokens(extractTokenRefSequence(m, tokenization.getUuid()))
-    .setEntityType("Unknown").setPhraseType("Name") // TODO warn users that this may not be accurate
+        .setEntityType("Unknown").setPhraseType("Name") // TODO warn users that this may not be accurate
         .setConfidence(1f).setText(mstring); // TODO merge this an method below
-
   }
 
   /**
@@ -388,6 +398,9 @@ public class AgigaConverter {
       emsb.addToMentionSet(em);
       entBuilder.addToMentionIdList(em.getUuid());
     }
+    if(!entBuilder.isSetMentionIdList()) {
+        entBuilder.setMentionIdList(new ArrayList<UUID>());
+    }
 
     return entBuilder;
   }
@@ -406,7 +419,7 @@ public class AgigaConverter {
       Entity e = convertCoref(emsb, coref, doc, toks);
       esb.addToEntityList(e);
     }
-
+    
     // comm.EntityMentionSet(emsb);
     comm.addToEntityMentionSets(emsb);
     comm.addToEntitySets(esb);
