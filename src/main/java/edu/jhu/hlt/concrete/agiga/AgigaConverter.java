@@ -279,16 +279,6 @@ public class AgigaConverter {
         tl.setTokens(new ArrayList<Token>());
     }
 
-    if(!lemma.isSetTaggedTokenList()) {
-        lemma.setTaggedTokenList(new ArrayList<TaggedToken>());
-    }
-    if(!ner.isSetTaggedTokenList()) {
-        ner.setTaggedTokenList(new ArrayList<TaggedToken>());
-    }    
-    if(!pos.isSetTaggedTokenList()) {
-        pos.setTaggedTokenList(new ArrayList<TaggedToken>());
-    }
-
     tb.setTokenList(tl);
     
     tb.setLemmaList(lemma).setPosTagList(pos).setNerTagList(ner).setParse(stanford2concrete(sent.getStanfordContituencyTree(), tUuid));
