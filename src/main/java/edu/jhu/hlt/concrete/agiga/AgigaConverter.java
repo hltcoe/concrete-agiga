@@ -257,7 +257,7 @@ public class AgigaConverter {
                                .setEnding(charOffset + tok.getWord().length()));
           }
       }
-      tl.addToTokens(ttok);
+      tl.addToTokenList(ttok);
       // token annotations
       lemma.addToTaggedTokenList(makeTaggedToken(tok.getLemma(), curTokId));
       pos.addToTaggedTokenList(makeTaggedToken(tok.getPosTag(), curTokId));
@@ -270,8 +270,11 @@ public class AgigaConverter {
     }
 
     tb.setTokenList(tl);
+    tb.addToTokenTaggingList(lemma);
+    tb.addToTokenTaggingList(pos);
+    tb.addToTokenTaggingList(ner);
     
-    tb.setLemmaList(lemma).setPosTagList(pos).setNerTagList(ner).setParse(stanford2concrete(sent.getStanfordContituencyTree(), tUuid));
+    tb.addToParseList(stanford2concrete(sent.getStanfordContituencyTree(), tUuid));
     tb.addToDependencyParseList(convertDependencyParse(sent.getBasicDeps(), "basic-deps"));
     tb.addToDependencyParseList(convertDependencyParse(sent.getColDeps(), "col-deps"));
     tb.addToDependencyParseList(convertDependencyParse(sent.getColCcprocDeps(), "col-ccproc-deps"));
@@ -320,8 +323,10 @@ public class AgigaConverter {
 
   public SentenceSegmentation sentenceSegment(AgigaDocument doc, UUID sectionId, List<Tokenization> addTo) {
 
-    SentenceSegmentation sb = new SentenceSegmentation().setUuid(this.idF.getConcreteUUID()).setMetadata(
-        metadata(" Stanford Sentence Splitting")).setSectionId(sectionId);
+    SentenceSegmentation sb = new SentenceSegmentation()
+      .setUuid(this.idF.getConcreteUUID())
+      .setMetadata(metadata(" Stanford Sentence Splitting"));
+      
     int charsFromStartOfCommunication = 0; // communication only has one section
     for (AgigaSentence sentence : doc.getSents()) {
       sb.addToSentenceList(convertSentence(sentence, charsFromStartOfCommunication, addTo));
@@ -346,7 +351,7 @@ public class AgigaConverter {
                              .setStart(0)
                              .setEnding(rawText.length()));
     }
-    concSect.addToSentenceSegmentation(sentenceSegment(doc, concSect.getUuid(), addTo));
+    concSect.addToSentenceSegmentationList(sentenceSegment(doc, concSect.getUuid(), addTo));
     ss.addToSectionList(concSect);
     return ss;
   }
@@ -385,7 +390,7 @@ public class AgigaConverter {
           String mentionString = extractMentionString(m, doc);
           entBuilder.setCanonicalName(mentionString);
       }
-      emsb.addToMentionSet(em);
+      emsb.addToMentionList(em);
       entBuilder.addToMentionIdList(em.getUuid());
     }
 
@@ -395,11 +400,11 @@ public class AgigaConverter {
   public Communication convertDoc(AgigaDocument doc) {
     Communication comm = extractRawCommunication(doc);
     List<Tokenization> toks = new ArrayList<Tokenization>();
-    comm.addToSectionSegmentations(sectionSegment(doc, comm.text, toks));
+    comm.addToSectionSegmentationList(sectionSegment(doc, comm.text, toks));
     // this must occur last so that the tokenizations have been added to toks
     List<EntityMention> mentionSet = new ArrayList<EntityMention>();
     EntityMentionSet emsb = new EntityMentionSet().setUuid(this.idF.getConcreteUUID()).setMetadata(
-        metadata(" http://nlp.stanford.edu/pubs/conllst2011-coref.pdf")).setMentionSet(mentionSet);
+        metadata(" http://nlp.stanford.edu/pubs/conllst2011-coref.pdf")).setMentionList(mentionSet);
     List<Entity> entityList = new ArrayList<Entity>();
     EntitySet esb = new EntitySet().setUuid(this.idF.getConcreteUUID()).setMetadata(metadata(" http://nlp.stanford.edu/pubs/conllst2011-coref.pdf")).setEntityList(entityList);
     for (AgigaCoref coref : doc.getCorefs()) {
@@ -408,8 +413,8 @@ public class AgigaConverter {
     }
 
     // comm.EntityMentionSet(emsb);
-    comm.addToEntityMentionSets(emsb);
-    comm.addToEntitySets(esb);
+    comm.addToEntityMentionSetList(emsb);
+    comm.addToEntitySetList(esb);
     return comm;
   }
 
@@ -419,6 +424,10 @@ public class AgigaConverter {
     comm.setText(flattenText(doc));
     comm.setType("News");
     comm.setUuid(this.idF.getConcreteUUID());
+    AnnotationMetadata md = new AnnotationMetadata()
+      .setTool("Concrete-agiga 3.3.6-SNAPSHOT")
+      .setTimestamp(System.currentTimeMillis() / 1000);
+    comm.setMetadata(md);
     return comm;
   }
 

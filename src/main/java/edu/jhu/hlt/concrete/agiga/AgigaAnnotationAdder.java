@@ -23,7 +23,7 @@ public class AgigaAnnotationAdder {
     private static final ConcreteUUIDFactory idF = new ConcreteUUIDFactory();
 
     public static void addAgigaAnnosToSection(AgigaDocument aDoc, Section cSection) {
-        SentenceSegmentation cSs = cSection.getSentenceSegmentation().get(0);
+        SentenceSegmentation cSs = cSection.getSentenceSegmentationList().get(0);
         List<Sentence> cSents = cSs.getSentenceList();
         List<AgigaSentence> aSents = aDoc.getSents();
         if (cSents.size() != aSents.size()) {
@@ -72,10 +72,12 @@ public class AgigaAnnotationAdder {
           ner.addToTaggedTokenList(converter.makeTaggedToken(tok.getNerTag(), tokId));
         }
         
-        cTokenization.setLemmaList(lemma);
-        cTokenization.setPosTagList(pos);
-        cTokenization.setNerTagList(ner);
-        cTokenization.setParse(converter.stanford2concrete(aSent.getStanfordContituencyTree(), cTokenization.getUuid()));
+        
+        
+        cTokenization.addToTokenTaggingList(lemma);
+        cTokenization.addToTokenTaggingList(pos);
+        cTokenization.addToTokenTaggingList(ner);
+        cTokenization.addToParseList(converter.stanford2concrete(aSent.getStanfordContituencyTree(), cTokenization.getUuid()));
         cTokenization.addToDependencyParseList(converter.convertDependencyParse(aSent.getBasicDeps(), "basic-deps"));
         cTokenization.addToDependencyParseList(converter.convertDependencyParse(aSent.getColDeps(), "col-deps"));
         cTokenization.addToDependencyParseList(converter.convertDependencyParse(aSent.getColCcprocDeps(), "col-ccproc-deps"));
@@ -84,7 +86,7 @@ public class AgigaAnnotationAdder {
     /** Check that the {@link AgigaSentence} corresponds to the given Concrete {@link Tokenization}. */
     private static void checkMatchingTokenizations(AgigaSentence aSent, Tokenization cTokenization) {
         List<AgigaToken> aToks = aSent.getTokens();
-        List<Token> cToks = cTokenization.getTokenList().getTokens();
+        List<Token> cToks = cTokenization.getTokenList().getTokenList();
         if (aToks.size() != cToks.size()) {
             throw new IllegalStateException("Number of tokens not equal: agiga=" + aToks.size()
                     + " concrete=" + cToks.size());

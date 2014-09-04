@@ -67,7 +67,7 @@ public class ConstituentTest {
     Communication c = new AgigaConverter(true).convertDoc(firstDoc);
     SuperCommunication sc = new SuperCommunication(c);
     Tokenization t = sc.firstTokenization();
-    Parse p = t.getParse();
+    Parse p = t.getParseList().get(0);
 
     assertTrue(p.getConstituentListSize() > 0);
     Set<Integer> intSet = new HashSet<>(p.getConstituentListSize());

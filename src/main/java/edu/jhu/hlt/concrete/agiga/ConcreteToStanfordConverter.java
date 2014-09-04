@@ -66,17 +66,29 @@ public class ConcreteToStanfordConverter {
         this.tokenizationTheory = tokenizationTheory;
         this.posTagTheory = posTagTheory;
     }
+    
+    public List<TokenTagging> getPOSTags(Tokenization t) {
+      List<TokenTagging> toRet = new ArrayList<TokenTagging>();
+      List<TokenTagging> ttList = t.getTokenTaggingList();
+      for (TokenTagging tt : ttList) {
+        if (tt.getTaggingType().toLowerCase().equals("pos"))
+          toRet.add(tt);
+      }
+      
+      return toRet;
+    }
 
     // The Stanford TreeGraphNode throws away all but the word from
     // the WordLemmaTag label in converting it to a CoreLabel. Accordingly
     // we allow access to the labels here as well.
     public List<WordLemmaTag> getStanfordWordLemmaTags() {
         Tokenization tokens = sent.getTokenizationList().get(0);
-        TokenTagging posTags = tokens.getPosTagList();
+        // Assumes one POS tag, or will only get the first found. 
+        TokenTagging posTags = this.getPOSTags(tokens).get(0);
         List<WordLemmaTag> labels = new ArrayList<WordLemmaTag>();
-        List<Token> tokenList = tokens.getTokenList().getTokens();
+        List<Token> tokenList = tokens.getTokenList().getTokenList();
         List<TaggedToken> ttList = posTags.getTaggedTokenList();
-        for (int i = 0; i < tokens.getTokenList().getTokensSize(); i++) {
+        for (int i = 0; i < tokens.getTokenList().getTokenListSize(); i++) {
             Token ct = tokenList.get(i);
             TaggedToken postt = ttList.get(i);
             if (ct.getTokenIndex() != postt.getTokenIndex()) {
