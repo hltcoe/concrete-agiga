@@ -56,15 +56,34 @@ public class AgigaConverter {
   
   private final ConcreteUUIDFactory idF = new ConcreteUUIDFactory();
 
+  /**
+   * Whether or not to allow empty required lists. 
+   */
+  private boolean allowEmpties;
+
   private boolean addTextSpans;
 
   /**
    * @param addTextSpans Because textSpans are merely "provenance" spans, and serve
    *        merely to indicate the original span that gave rise to a particular
    *        annotation span, we don't always want to add text spans.
+   * <br/>
+   * This will <em>not</em> allow empty required lists.
    */
   public AgigaConverter(boolean addTextSpans) {
       this.addTextSpans = addTextSpans;
+      this.allowEmpties = false;
+  }
+
+  /**
+   * @param addTextSpans Because textSpans are merely "provenance" spans, and serve
+   *        merely to indicate the original span that gave rise to a particular
+   *        annotation span, we don't always want to add text spans.
+   * @param allowEmpties Whether to allow empty required lists.
+   */
+  public AgigaConverter(boolean addTextSpans, boolean allowEmpties) {
+      this.addTextSpans = addTextSpans;
+      this.allowEmpties = allowEmpties;
   }
 
   public boolean isAddingTextSpans(){
@@ -103,6 +122,11 @@ public class AgigaConverter {
     return sb.toString().trim();
   }
 
+  /**
+   * Whenever there's an empty parse, this method will set the
+   * required constituent list to be an empty list. It's up
+   * to the caller on what to do with the returned Parse.
+   */
   public Parse stanford2concrete(Tree root, UUID tokenizationUUID) {
     int left = 0;
     int right = root.getLeaves().size();
@@ -119,6 +143,10 @@ public class AgigaConverter {
     p.setUuid(this.idF.getConcreteUUID());
     p.setMetadata(metadata(" http://www.aclweb.org/anthology-new/D/D10/D10-1002.pdf"));
     s2cHelper(root, idCounter, left, right, p, tokenizationUUID);
+    if(!p.isSetConstituentList()) {
+        logger.warn("Setting constituent list to compensate for the empty parse for tokenization id" + tokenizationUUID + " and tree " + root);
+        p.setConstituentList(new ArrayList<Constituent>());
+    }
     return p;
   }
 
@@ -164,7 +192,18 @@ public class AgigaConverter {
     return extractTokenRefSequence(m.getStartTokenIdx(), m.getEndTokenIdx(), m.getHeadTokenIdx(), uuid);
   }
 
+  /**
+   * This creates a TokenRefSequence with provided {@code uuid}.
+   * @param left The left endpoint (inclusive) of the token range.
+   * @param right The right endpoint (exclusive) of the token range.
+   * Note that {@code right} must be strictly greater than {@code left};
+   * otherwise, a runtime exception is called.
+   */
   public TokenRefSequence extractTokenRefSequence(int left, int right, Integer head, UUID uuid) {
+    if(right - left <= 0) {
+        throw new RuntimeException("Calling extractTokenRefSequence with right <= left: left = " + left +", right = " + right +", head = " + head +", UUID = " + uuid);
+        
+    }
     TokenRefSequence tb = new TokenRefSequence();
     tb.setTokenizationId(uuid);
 
@@ -209,6 +248,9 @@ public class AgigaConverter {
    * If those are not set, then we will use the 
    * provided charOffset, as long as it is non-negative. Otherwise, this will
    * throw a runtime exception.
+   * <br/>
+   * This requires that there be tokens to process. If there are no tokens, 
+   * a runtime exception is thrown.
    */
   public Tokenization convertTokenization(AgigaSentence sent, int charOffset) {
     TokenTagging lemma = new TokenTagging();
@@ -269,15 +311,31 @@ public class AgigaConverter {
       }
     }
 
+    if(tokId == 0) {
+        throw new RuntimeException("No tokens were processed for agiga sentence " + sent);
+    }
     tb.setTokenList(tl);
     tb.addToTokenTaggingList(lemma);
     tb.addToTokenTaggingList(pos);
     tb.addToTokenTaggingList(ner);
     
-    tb.addToParseList(stanford2concrete(sent.getStanfordContituencyTree(), tUuid));
-    tb.addToDependencyParseList(convertDependencyParse(sent.getBasicDeps(), "basic-deps"));
-    tb.addToDependencyParseList(convertDependencyParse(sent.getColDeps(), "col-deps"));
-    tb.addToDependencyParseList(convertDependencyParse(sent.getColCcprocDeps(), "col-ccproc-deps"));
+    Parse parse = stanford2concrete(sent.getStanfordContituencyTree(), tUuid);
+    if(!allowEmpties && !parse.isSetConstituentList()) {
+        logger.warn("Not adding empty constituency parse for tokenization id " + tUuid);
+    } else {
+        tb.addToParseList(parse);
+    }
+    String[] depTypes = new String[]{"basic-deps",
+                                     "col-deps",
+                                     "col-ccproc-deps"};
+    for(String dt : depTypes) {
+        DependencyParse dp = convertDependencyParse(sent.getBasicDeps(), dt);
+            if(!allowEmpties && !dp.isSetDependencyList()) {
+                logger.warn("Not adding empty " + dt + " dependency parse for tokenization id " + tUuid);
+            } else {
+                tb.addToDependencyParseList(dp);
+            }
+    }
     return tb;
   }
 
@@ -295,8 +353,13 @@ public class AgigaConverter {
    * If those are not set, then we will use the 
    * provided charsFromStartOfCommunication, as long as it is non-negative. 
    * Otherwise, this will throw a runtime exception.
+   * <br/>
+   * A runtime exception is thrown if the provided sentence is empty.
    */
   public Sentence convertSentence(AgigaSentence sent, int charsFromStartOfCommunication, List<Tokenization> addTo) {
+    if(sent != null && sent.getTokens() != null && sent.getTokens().isEmpty()) {
+        throw new RuntimeException("AgigaSentence " + sent + " does not have any tokens to process");
+    }
     Tokenization tokenization = convertTokenization(sent, charsFromStartOfCommunication);
     addTo.add(tokenization); // one tokenization per sentence
     Sentence concSent = new Sentence().setUuid(this.idF.getConcreteUUID());
@@ -329,6 +392,10 @@ public class AgigaConverter {
       
     int charsFromStartOfCommunication = 0; // communication only has one section
     for (AgigaSentence sentence : doc.getSents()) {
+      if(sentence.getTokens().isEmpty()) {
+          logger.warn("Skipping empty sentence " + sentence + " in section with id " + sectionId);
+          continue;
+      }
       sb.addToSentenceList(convertSentence(sentence, charsFromStartOfCommunication, addTo));
       charsFromStartOfCommunication += flattenText(sentence).length() + 1; // +1 for newline at end of sentence
     }
@@ -378,9 +445,13 @@ public class AgigaConverter {
 
   /**
    * adds EntityMentions to EnityMentionSet.Builder creates and returns an Entity
+   * This throws a runtime exception when an entity does not have any mentions AND
+   * when {@code allowEmpties} is false.
    */
   public Entity convertCoref(EntityMentionSet emsb, AgigaCoref coref, AgigaDocument doc, List<Tokenization> toks) {
-
+    if(coref.getMentions().isEmpty() && !allowEmpties) {
+        throw new RuntimeException("Entity does not have any mentions");
+    }
     Entity entBuilder = new Entity()
       .setUuid(this.idF.getConcreteUUID())
       .setType("Other");
@@ -393,7 +464,9 @@ public class AgigaConverter {
       emsb.addToMentionList(em);
       entBuilder.addToMentionIdList(em.getUuid());
     }
-
+    if(!entBuilder.isSetMentionIdList()) {
+        entBuilder.setMentionIdList(new ArrayList<UUID>());
+    }    
     return entBuilder;
   }
 
@@ -412,9 +485,24 @@ public class AgigaConverter {
       esb.addToEntityList(e);
     }
 
-    // comm.EntityMentionSet(emsb);
-    comm.addToEntityMentionSetList(emsb);
-    comm.addToEntitySetList(esb);
+    if(!emsb.isSetMentionList()){
+        if(allowEmpties) {
+            logger.warn("No mentions found: creating empty mention list");
+            emsb.setMentionList(new ArrayList<EntityMention>());
+            comm.addToEntityMentionSetList(emsb);
+        } 
+    } else {
+        comm.addToEntityMentionSetList(emsb);
+    }
+    if(!esb.isSetEntityList()){
+        if(allowEmpties) {
+            logger.warn("No entities found: creating empty entity list");
+            esb.setEntityList(new ArrayList<Entity>());
+            comm.addToEntitySetList(esb);
+        } 
+    } else {
+        comm.addToEntitySetList(esb);
+    }
     return comm;
   }
 
