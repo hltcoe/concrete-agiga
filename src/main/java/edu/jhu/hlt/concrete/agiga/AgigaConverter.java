@@ -565,22 +565,46 @@ public class AgigaConverter {
    * adds EntityMentions to EnityMentionSet.Builder creates and returns an Entity
    * This throws a runtime exception when an entity does not have any mentions AND
    * when {@code allowEmpties} is false.
+   * The entity type is set to be the type of the representative mention if either 
+   * the representative mention is the only mention with a set type, or if the 
+   * most frequently seen mention type is the same as the representative mention type.
+   * Otherwise, the entity is assigned type "Other," and a notice is logged.
    */
   public Entity convertCoref(EntityMentionSet emsb, AgigaCoref coref, AgigaDocument doc, List<Tokenization> toks) {
     if(coref.getMentions().isEmpty() && !allowEmpties) {
         throw new RuntimeException("Entity does not have any mentions");
     }
     Entity entBuilder = new Entity()
-        .setUuid(this.idF.getConcreteUUID())
-        .setType("Other");
+        .setUuid(this.idF.getConcreteUUID());
+    Map<String, Integer> counter = new HashMap<String, Integer>();
+    int maxI = -1;
+    String maxEType = null;
+    String repEntType = null;
     for (AgigaMention m : coref.getMentions()) {
       EntityMention em = convertMention(m, doc, this.idF.getConcreteUUID(), toks.get(m.getSentenceIdx()));
       if(m.isRepresentative()){
           String mentionString = extractMentionString(m, doc);
           entBuilder.setCanonicalName(mentionString);
+          repEntType = em.getEntityType();
+      } 
+      if(!counter.containsKey(em.getEntityType())){
+          counter.put(em.getEntityType(), 0);
+      }
+      int num = counter.get(em.getEntityType()) + 1;
+      counter.put(em.getEntityType(), num);
+      if(num > maxI) {
+          maxI = num;
+          maxEType = em.getEntityType();
       }
       emsb.addToMentionList(em);
       entBuilder.addToMentionIdList(em.getUuid());
+    }
+    if(maxEType!=null && repEntType!= null && 
+       repEntType.equals(maxEType)) {
+        entBuilder.setType(repEntType);
+    } else {
+        logger.debug("For entity " + entBuilder.getUuid() + ", the representative entity type " + repEntType + " isn't the same as the max seen mention type " + maxEType+"; setting entity type to Other");
+        entBuilder.setType("Other");
     }
     if(!entBuilder.isSetMentionIdList()) {
         entBuilder.setMentionIdList(new ArrayList<UUID>());
