@@ -462,10 +462,10 @@ public class AgigaConverter {
       }
       int which = -1;
       for(TokenTagging tt : tokenization.getTokenTaggingList()) {
-          which++;
           if(!tt.isSetTaggingType() || !tt.getTaggingType().equals("NER")) {
               continue;
           }
+          which++;
           int whichTIndex = -1;
           for(TaggedToken tagTok : tt.getTaggedTokenList()) {
               whichTIndex++;
