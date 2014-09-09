@@ -553,10 +553,12 @@ public class AgigaConverter {
   public EntityMention convertMention(AgigaMention m, AgigaDocument doc, UUID corefSet, Tokenization tokenization) {
     String mstring = extractMentionString(m, doc);
 
-    return new EntityMention().setUuid(this.idF.getConcreteUUID()).setTokens(extractTokenRefSequence(m, tokenization.getUuid()))
-    .setEntityType("Unknown").setPhraseType("Name") // TODO warn users that this may not be accurate
+    EntityMention em = new EntityMention().setUuid(this.idF.getConcreteUUID())
+        .setTokens(extractTokenRefSequence(m, tokenization.getUuid()));
+    String emType = getEntityMentionType(em, tokenization);
+    em.setEntityType(emType).setPhraseType("Name") // TODO warn users that this may not be accurate
         .setConfidence(1f).setText(mstring); // TODO merge this an method below
-
+    return em;
   }
 
   /**
