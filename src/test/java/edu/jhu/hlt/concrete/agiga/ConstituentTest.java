@@ -61,28 +61,33 @@ public class ConstituentTest {
 
   @Test
   public void testConstituentIDs() throws ConcreteException {
-    StreamingDocumentReader docReader = new StreamingDocumentReader(testDataPath.toString(), new AgigaPrefs());
-    assertTrue(docReader.hasNext());
-    AgigaDocument firstDoc = docReader.next();
-    Communication c = new AgigaConverter(true).convertDoc(firstDoc);
-    SuperCommunication sc = new SuperCommunication(c);
-    Tokenization t = sc.firstTokenization();
-    Parse p = t.getParseList().get(0);
+      AgigaPrefs ap = new AgigaPrefs();
+      ap.setAll(true);
+      StreamingDocumentReader docReader = new StreamingDocumentReader(testDataPath.toString(), ap);
+      assertTrue("Cannot read a document", docReader.hasNext());
+      AgigaDocument firstDoc = docReader.next();
+      Communication c = new AgigaConverter(true).convertDoc(firstDoc);
+      SuperCommunication sc = new SuperCommunication(c);
+      Tokenization t = sc.firstTokenization();
+      Parse p = t.getParseList().get(0);
 
-    assertTrue(p.getConstituentListSize() > 0);
-    Set<Integer> intSet = new HashSet<>(p.getConstituentListSize());
-    for (Constituent ct : p.getConstituentList()) {
-      // logger.info("Got constituent ID: {}", ct.id);
-      assertTrue(intSet.add(ct.getId()));
-    }
+      assertTrue(p.getConstituentListSize() > 0);
+      Set<Integer> intSet = new HashSet<>(p.getConstituentListSize());
+      for (Constituent ct : p.getConstituentList()) {
+          // logger.info("Got constituent ID: {}", ct.id);
+          assertTrue("Duplicating constituent id " + ct.getId(),
+                     intSet.add(ct.getId()));
+      }
   }
   
   @Test
   public void normal() throws ConcreteException {
-    StreamingDocumentReader docReader = new StreamingDocumentReader(testDataPath.toString(), new AgigaPrefs());
-    assertTrue(docReader.hasNext());
-    AgigaDocument firstDoc = docReader.next();
-    Communication c = new AgigaConverter(true).convertDoc(firstDoc);
-    new Serialization().toBytes(c);
+      AgigaPrefs ap = new AgigaPrefs();
+      ap.setAll(true);
+      StreamingDocumentReader docReader = new StreamingDocumentReader(testDataPath.toString(), ap);
+      assertTrue(docReader.hasNext());
+      AgigaDocument firstDoc = docReader.next();
+      Communication c = new AgigaConverter(true).convertDoc(firstDoc);
+      new Serialization().toBytes(c);
   }
 }
