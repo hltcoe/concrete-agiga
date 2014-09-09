@@ -571,8 +571,8 @@ public class AgigaConverter {
         throw new RuntimeException("Entity does not have any mentions");
     }
     Entity entBuilder = new Entity()
-      .setUuid(this.idF.getConcreteUUID())
-      .setType("Other");
+        .setUuid(this.idF.getConcreteUUID())
+        .setType("Other");
     for (AgigaMention m : coref.getMentions()) {
       EntityMention em = convertMention(m, doc, this.idF.getConcreteUUID(), toks.get(m.getSentenceIdx()));
       if(m.isRepresentative()){
