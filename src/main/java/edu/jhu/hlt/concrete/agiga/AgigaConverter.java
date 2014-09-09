@@ -314,6 +314,9 @@ public class AgigaConverter {
     if(tokId == 0) {
         throw new RuntimeException("No tokens were processed for agiga sentence " + sent);
     }
+    lemma.setTaggingType("LEMMA");
+    pos.setTaggingType("POS");
+    ner.setTaggingType("NER");
     tb.setTokenList(tl);
     tb.addToTokenTaggingList(lemma);
     tb.addToTokenTaggingList(pos);
