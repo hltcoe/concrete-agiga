@@ -534,11 +534,13 @@ public class AgigaConverter {
     if (coref.getMentions().isEmpty() && !allowEmpties) {
       throw new RuntimeException("Entity does not have any mentions");
     }
+
     Entity entBuilder = new Entity().setUuid(this.idF.getConcreteUUID());
     Map<String, Integer> counter = new HashMap<String, Integer>();
     int maxI = -1;
     String maxEType = null;
     String repEntType = null;
+
     for (AgigaMention m : coref.getMentions()) {
       EntityMention em = convertMention(m, doc, this.idF.getConcreteUUID(), toks.get(m.getSentenceIdx()));
       if (m.isRepresentative()) {
@@ -558,6 +560,7 @@ public class AgigaConverter {
       emsb.addToMentionList(em);
       entBuilder.addToMentionIdList(em.getUuid());
     }
+
     if (maxEType != null && repEntType != null && repEntType.equals(maxEType)) {
       entBuilder.setType(repEntType);
     } else {
@@ -565,6 +568,7 @@ public class AgigaConverter {
           + maxEType + "; setting entity type to Other");
       entBuilder.setType("Other");
     }
+
     if (!entBuilder.isSetMentionIdList()) {
       entBuilder.setMentionIdList(new ArrayList<UUID>());
     }
