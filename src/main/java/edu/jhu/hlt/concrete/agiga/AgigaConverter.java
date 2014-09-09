@@ -53,22 +53,41 @@ public class AgigaConverter {
   public static final long annotationTime = System.currentTimeMillis();
 
   private static final Logger logger = LoggerFactory.getLogger(AgigaConverter.class);
-  
+
   private final ConcreteUUIDFactory idF = new ConcreteUUIDFactory();
+
+  /**
+   * Whether or not to allow empty required lists.
+   */
+  private boolean allowEmpties;
 
   private boolean addTextSpans;
 
   /**
-   * @param addTextSpans Because textSpans are merely "provenance" spans, and serve
-   *        merely to indicate the original span that gave rise to a particular
-   *        annotation span, we don't always want to add text spans.
+   * @param addTextSpans
+   *          Because textSpans are merely "provenance" spans, and serve merely to indicate the original span that gave rise to a particular annotation span, we
+   *          don't always want to add text spans. <br/>
+   *          This will <em>not</em> allow empty required lists.
    */
   public AgigaConverter(boolean addTextSpans) {
-      this.addTextSpans = addTextSpans;
+    this.addTextSpans = addTextSpans;
+    this.allowEmpties = false;
   }
 
-  public boolean isAddingTextSpans(){
-      return addTextSpans;
+  /**
+   * @param addTextSpans
+   *          Because textSpans are merely "provenance" spans, and serve merely to indicate the original span that gave rise to a particular annotation span, we
+   *          don't always want to add text spans.
+   * @param allowEmpties
+   *          Whether to allow empty required lists.
+   */
+  public AgigaConverter(boolean addTextSpans, boolean allowEmpties) {
+    this.addTextSpans = addTextSpans;
+    this.allowEmpties = allowEmpties;
+  }
+
+  public boolean isAddingTextSpans() {
+    return addTextSpans;
   }
 
   public AnnotationMetadata metadata() {
@@ -103,22 +122,27 @@ public class AgigaConverter {
     return sb.toString().trim();
   }
 
+  /**
+   * Whenever there's an empty parse, this method will set the required constituent list to be an empty list. It's up to the caller on what to do with the
+   * returned Parse.
+   */
   public Parse stanford2concrete(Tree root, UUID tokenizationUUID) {
     int left = 0;
     int right = root.getLeaves().size();
-    int[] idCounter = new int[]{0};
+    int[] idCounter = new int[] { 0 };
     /*
-     * this was a bug in stanford nlp; if you have a terminal with a space in it, like (CD 2 1/2)
-     * stanford's getLeaves() will return Trees for 2 and 1/2
-     * whereas the tokenization will have one token for 2 1/2
-     * => this has since been handled in agiga, but this is a check to
-     * make sure you have the right jar
+     * this was a bug in stanford nlp; if you have a terminal with a space in it, like (CD 2 1/2) stanford's getLeaves() will return Trees for 2 and 1/2 whereas
+     * the tokenization will have one token for 2 1/2 => this has since been handled in agiga, but this is a check to make sure you have the right jar
      */
 
     Parse p = new Parse();
     p.setUuid(this.idF.getConcreteUUID());
     p.setMetadata(metadata(" http://www.aclweb.org/anthology-new/D/D10/D10-1002.pdf"));
     s2cHelper(root, idCounter, left, right, p, tokenizationUUID);
+    if (!p.isSetConstituentList()) {
+      logger.warn("Setting constituent list to compensate for the empty parse for tokenization id" + tokenizationUUID + " and tree " + root);
+      p.setConstituentList(new ArrayList<Constituent>());
+    }
     return p;
   }
 
@@ -128,7 +152,7 @@ public class AgigaConverter {
   private static final HeadFinder HEAD_FINDER = new SemanticHeadFinder();
 
   private int s2cHelper(Tree root, int[] idCounter, int left, int right, Parse p, UUID tokenizationUUID) {
-    assert(idCounter.length == 1);
+    assert (idCounter.length == 1);
     Constituent cb = new Constituent();
     cb.setId(idCounter[0]++);
     cb.setTag(root.value());
@@ -164,7 +188,21 @@ public class AgigaConverter {
     return extractTokenRefSequence(m.getStartTokenIdx(), m.getEndTokenIdx(), m.getHeadTokenIdx(), uuid);
   }
 
+  /**
+   * This creates a TokenRefSequence with provided {@code uuid}.
+   * 
+   * @param left
+   *          The left endpoint (inclusive) of the token range.
+   * @param right
+   *          The right endpoint (exclusive) of the token range. Note that {@code right} must be strictly greater than {@code left}; otherwise, a runtime
+   *          exception is called.
+   */
   public TokenRefSequence extractTokenRefSequence(int left, int right, Integer head, UUID uuid) {
+    if (right - left <= 0) {
+      throw new RuntimeException("Calling extractTokenRefSequence with right <= left: left = " + left + ", right = " + right + ", head = " + head + ", UUID = "
+          + uuid);
+
+    }
     TokenRefSequence tb = new TokenRefSequence();
     tb.setTokenizationId(uuid);
 
@@ -184,31 +222,29 @@ public class AgigaConverter {
     DependencyParse db = new DependencyParse();
     db.setUuid(this.idF.getConcreteUUID());
     db.setMetadata(metadata(" " + name + " http://nlp.stanford.edu/software/dependencies_manual.pdf"));
-    
+
     if (!deps.isEmpty()) {
       for (AgigaTypedDependency ad : deps) {
         Dependency depB = new Dependency(ad.getDepIdx());
         depB.setEdgeType(ad.getType());
-  
+
         if (ad.getGovIdx() >= 0) // else ROOT
           depB.setGov(ad.getGovIdx());
-  
+
         db.addToDependencyList(depB);
       }
     } else {
-        db.setDependencyList(new ArrayList<Dependency>());
+      db.setDependencyList(new ArrayList<Dependency>());
     }
-    
+
     return db;
   }
 
   /**
-   * Create a tokenization based on the given sentence. If we're looking to add
-   * textspans, then we will first default to using the token character offsets
-   * within the sentence itself if charOffset is negative. 
-   * If those are not set, then we will use the 
-   * provided charOffset, as long as it is non-negative. Otherwise, this will
-   * throw a runtime exception.
+   * Create a tokenization based on the given sentence. If we're looking to add textspans, then we will first default to using the token character offsets
+   * within the sentence itself if charOffset is negative. If those are not set, then we will use the provided charOffset, as long as it is non-negative.
+   * Otherwise, this will throw a runtime exception. <br/>
+   * This requires that there be tokens to process. If there are no tokens, a runtime exception is thrown.
    */
   public Tokenization convertTokenization(AgigaSentence sent, int charOffset) {
     TokenTagging lemma = new TokenTagging();
@@ -232,9 +268,7 @@ public class AgigaConverter {
 
     boolean trustGivenOffset = charOffset >= 0;
 
-    tb.setUuid(tUuid)
-        .setMetadata(metadata(" http://nlp.stanford.edu/software/tokensregex.shtml"))
-        .setKind(TokenizationKind.TOKEN_LIST);
+    tb.setUuid(tUuid).setMetadata(metadata(" http://nlp.stanford.edu/software/tokensregex.shtml")).setKind(TokenizationKind.TOKEN_LIST);
 
     int tokId = 0;
     TokenList tl = new TokenList();
@@ -242,20 +276,15 @@ public class AgigaConverter {
       int curTokId = tokId++;
 
       Token ttok = new Token().setTokenIndex(curTokId).setText(tok.getWord());
-      if(addTextSpans) {
-          if(charOffset < 0 && 
-             tok.getCharOffBegin() >= 0 && tok.getCharOffEnd() > tok.getCharOffBegin()){
-              ttok.setTextSpan(new TextSpan()
-                               .setStart(tok.getCharOffBegin())
-                               .setEnding(tok.getCharOffEnd()));
-          } else {
-              if(charOffset < 0){
-                  throw new RuntimeException("Bad character offset of " + charOffset + " for sentence " + sent);
-              }
-              ttok.setTextSpan(new TextSpan()
-                               .setStart(charOffset)
-                               .setEnding(charOffset + tok.getWord().length()));
+      if (addTextSpans) {
+        if (charOffset < 0 && tok.getCharOffBegin() >= 0 && tok.getCharOffEnd() > tok.getCharOffBegin()) {
+          ttok.setTextSpan(new TextSpan().setStart(tok.getCharOffBegin()).setEnding(tok.getCharOffEnd()));
+        } else {
+          if (charOffset < 0) {
+            throw new RuntimeException("Bad character offset of " + charOffset + " for sentence " + sent);
           }
+          ttok.setTextSpan(new TextSpan().setStart(charOffset).setEnding(charOffset + tok.getWord().length()));
+        }
       }
       tl.addToTokenList(ttok);
       // token annotations
@@ -263,59 +292,66 @@ public class AgigaConverter {
       pos.addToTaggedTokenList(makeTaggedToken(tok.getPosTag(), curTokId));
       ner.addToTaggedTokenList(makeTaggedToken(tok.getNerTag(), curTokId));
       // normNerBuilder.addTaggedToken(makeTaggedToken(tok.getNormNerTag(), curTokId));
-      
-      if(trustGivenOffset){
-          charOffset += tok.getWord().length() + 1;
+
+      if (trustGivenOffset) {
+        charOffset += tok.getWord().length() + 1;
       }
     }
 
+    if (tokId == 0) {
+      throw new RuntimeException("No tokens were processed for agiga sentence " + sent);
+    }
     tb.setTokenList(tl);
     tb.addToTokenTaggingList(lemma);
     tb.addToTokenTaggingList(pos);
     tb.addToTokenTaggingList(ner);
-    
-    tb.addToParseList(stanford2concrete(sent.getStanfordContituencyTree(), tUuid));
-    tb.addToDependencyParseList(convertDependencyParse(sent.getBasicDeps(), "basic-deps"));
-    tb.addToDependencyParseList(convertDependencyParse(sent.getColDeps(), "col-deps"));
-    tb.addToDependencyParseList(convertDependencyParse(sent.getColCcprocDeps(), "col-ccproc-deps"));
+
+    Parse parse = stanford2concrete(sent.getStanfordContituencyTree(), tUuid);
+    if (!allowEmpties && !parse.isSetConstituentList()) {
+      logger.warn("Not adding empty constituency parse for tokenization id " + tUuid);
+    } else {
+      tb.addToParseList(parse);
+    }
+    String[] depTypes = new String[] { "basic-deps", "col-deps", "col-ccproc-deps" };
+    for (String dt : depTypes) {
+      DependencyParse dp = convertDependencyParse(sent.getBasicDeps(), dt);
+      if (!allowEmpties && !dp.isSetDependencyList()) {
+        logger.warn("Not adding empty " + dt + " dependency parse for tokenization id " + tUuid);
+      } else {
+        tb.addToDependencyParseList(dp);
+      }
+    }
     return tb;
   }
 
   public TaggedToken makeTaggedToken(String tag, int tokId) {
-    return new TaggedToken()
-      .setTokenIndex(tokId)
-      .setTag(tag)
-      .setConfidence(1f);
+    return new TaggedToken().setTokenIndex(tokId).setTag(tag).setConfidence(1f);
   }
 
   /**
-   * Create a concrete sentence based on the agiga sentence. If we're looking to add
-   * textspans, then we will first default to using the token character offsets
-   * within the sentence itself if charsFromStartOfCommunication is negative. 
-   * If those are not set, then we will use the 
-   * provided charsFromStartOfCommunication, as long as it is non-negative. 
-   * Otherwise, this will throw a runtime exception.
+   * Create a concrete sentence based on the agiga sentence. If we're looking to add textspans, then we will first default to using the token character offsets
+   * within the sentence itself if charsFromStartOfCommunication is negative. If those are not set, then we will use the provided charsFromStartOfCommunication,
+   * as long as it is non-negative. Otherwise, this will throw a runtime exception. <br/>
+   * A runtime exception is thrown if the provided sentence is empty.
    */
   public Sentence convertSentence(AgigaSentence sent, int charsFromStartOfCommunication, List<Tokenization> addTo) {
+    if (sent != null && sent.getTokens() != null && sent.getTokens().isEmpty()) {
+      throw new RuntimeException("AgigaSentence " + sent + " does not have any tokens to process");
+    }
     Tokenization tokenization = convertTokenization(sent, charsFromStartOfCommunication);
     addTo.add(tokenization); // one tokenization per sentence
     Sentence concSent = new Sentence().setUuid(this.idF.getConcreteUUID());
-    if(addTextSpans){
-        AgigaToken firstToken = sent.getTokens().get(0);
-        AgigaToken lastToken  = sent.getTokens().get(sent.getTokens().size() - 1);
-        if(charsFromStartOfCommunication < 0 && 
-           firstToken.getCharOffBegin() >= 0 && lastToken.getCharOffEnd() > firstToken.getCharOffBegin()){
-            concSent.setTextSpan(new TextSpan()
-                                 .setStart(firstToken.getCharOffBegin())
-                                 .setEnding(lastToken.getCharOffEnd()));
-        } else {
-            if(charsFromStartOfCommunication < 0){
-                throw new RuntimeException("bad character offset of " + charsFromStartOfCommunication + " for converting sent " + sent);
-            }
-            concSent.setTextSpan(new TextSpan()
-                                 .setStart(charsFromStartOfCommunication)
-                                 .setEnding(charsFromStartOfCommunication + flattenText(sent).length()));
+    if (addTextSpans) {
+      AgigaToken firstToken = sent.getTokens().get(0);
+      AgigaToken lastToken = sent.getTokens().get(sent.getTokens().size() - 1);
+      if (charsFromStartOfCommunication < 0 && firstToken.getCharOffBegin() >= 0 && lastToken.getCharOffEnd() > firstToken.getCharOffBegin()) {
+        concSent.setTextSpan(new TextSpan().setStart(firstToken.getCharOffBegin()).setEnding(lastToken.getCharOffEnd()));
+      } else {
+        if (charsFromStartOfCommunication < 0) {
+          throw new RuntimeException("bad character offset of " + charsFromStartOfCommunication + " for converting sent " + sent);
         }
+        concSent.setTextSpan(new TextSpan().setStart(charsFromStartOfCommunication).setEnding(charsFromStartOfCommunication + flattenText(sent).length()));
+      }
     }
     concSent.addToTokenizationList(tokenization);
     return concSent;
@@ -323,12 +359,14 @@ public class AgigaConverter {
 
   public SentenceSegmentation sentenceSegment(AgigaDocument doc, UUID sectionId, List<Tokenization> addTo) {
 
-    SentenceSegmentation sb = new SentenceSegmentation()
-      .setUuid(this.idF.getConcreteUUID())
-      .setMetadata(metadata(" Stanford Sentence Splitting"));
-      
+    SentenceSegmentation sb = new SentenceSegmentation().setUuid(this.idF.getConcreteUUID()).setMetadata(metadata(" Stanford Sentence Splitting"));
+
     int charsFromStartOfCommunication = 0; // communication only has one section
     for (AgigaSentence sentence : doc.getSents()) {
+      if (sentence.getTokens().isEmpty()) {
+        logger.warn("Skipping empty sentence " + sentence + " in section with id " + sectionId);
+        continue;
+      }
       sb.addToSentenceList(convertSentence(sentence, charsFromStartOfCommunication, addTo));
       charsFromStartOfCommunication += flattenText(sentence).length() + 1; // +1 for newline at end of sentence
     }
@@ -336,20 +374,15 @@ public class AgigaConverter {
   }
 
   /**
-   * Note: this assumes that it will be called only once: that is, that there is only one 
-   * section in the entire agiga document. Therefore, the provenance span will span the 
-   * entire text.
+   * Note: this assumes that it will be called only once: that is, that there is only one section in the entire agiga document. Therefore, the provenance span
+   * will span the entire text.
    */
   public SectionSegmentation sectionSegment(AgigaDocument doc, String rawText, List<Tokenization> addTo) {
 
     SectionSegmentation ss = new SectionSegmentation().setUuid(this.idF.getConcreteUUID()).setMetadata(metadata());
-    Section concSect = new Section()
-        .setUuid(this.idF.getConcreteUUID())
-        .setKind("Passage");
-    if(addTextSpans){
-        concSect.setTextSpan(new TextSpan()
-                             .setStart(0)
-                             .setEnding(rawText.length()));
+    Section concSect = new Section().setUuid(this.idF.getConcreteUUID()).setKind("Passage");
+    if (addTextSpans) {
+      concSect.setTextSpan(new TextSpan().setStart(0).setEnding(rawText.length()));
     }
     concSect.addToSentenceSegmentationList(sentenceSegment(doc, concSect.getUuid(), addTo));
     ss.addToSectionList(concSect);
@@ -370,30 +403,33 @@ public class AgigaConverter {
   public EntityMention convertMention(AgigaMention m, AgigaDocument doc, UUID corefSet, Tokenization tokenization) {
     String mstring = extractMentionString(m, doc);
 
-    return new EntityMention().setUuid(this.idF.getConcreteUUID()).setTokens(extractTokenRefSequence(m, tokenization.getUuid()))
-    .setEntityType("Unknown").setPhraseType("Name") // TODO warn users that this may not be accurate
+    return new EntityMention().setUuid(this.idF.getConcreteUUID()).setTokens(extractTokenRefSequence(m, tokenization.getUuid())).setEntityType("Unknown")
+        .setPhraseType("Name") // TODO warn users that this may not be accurate
         .setConfidence(1f).setText(mstring); // TODO merge this an method below
 
   }
 
   /**
-   * adds EntityMentions to EnityMentionSet.Builder creates and returns an Entity
+   * adds EntityMentions to EnityMentionSet.Builder creates and returns an Entity This throws a runtime exception when an entity does not have any mentions AND
+   * when {@code allowEmpties} is false.
    */
   public Entity convertCoref(EntityMentionSet emsb, AgigaCoref coref, AgigaDocument doc, List<Tokenization> toks) {
-
-    Entity entBuilder = new Entity()
-      .setUuid(this.idF.getConcreteUUID())
-      .setType("Other");
+    if (coref.getMentions().isEmpty() && !allowEmpties) {
+      throw new RuntimeException("Entity does not have any mentions");
+    }
+    Entity entBuilder = new Entity().setUuid(this.idF.getConcreteUUID()).setType("Other");
     for (AgigaMention m : coref.getMentions()) {
       EntityMention em = convertMention(m, doc, this.idF.getConcreteUUID(), toks.get(m.getSentenceIdx()));
-      if(m.isRepresentative()){
-          String mentionString = extractMentionString(m, doc);
-          entBuilder.setCanonicalName(mentionString);
+      if (m.isRepresentative()) {
+        String mentionString = extractMentionString(m, doc);
+        entBuilder.setCanonicalName(mentionString);
       }
       emsb.addToMentionList(em);
       entBuilder.addToMentionIdList(em.getUuid());
     }
-
+    if (!entBuilder.isSetMentionIdList()) {
+      entBuilder.setMentionIdList(new ArrayList<UUID>());
+    }
     return entBuilder;
   }
 
@@ -403,18 +439,34 @@ public class AgigaConverter {
     comm.addToSectionSegmentationList(sectionSegment(doc, comm.text, toks));
     // this must occur last so that the tokenizations have been added to toks
     List<EntityMention> mentionSet = new ArrayList<EntityMention>();
-    EntityMentionSet emsb = new EntityMentionSet().setUuid(this.idF.getConcreteUUID()).setMetadata(
-        metadata(" http://nlp.stanford.edu/pubs/conllst2011-coref.pdf")).setMentionList(mentionSet);
+    EntityMentionSet emsb = new EntityMentionSet().setUuid(this.idF.getConcreteUUID())
+        .setMetadata(metadata(" http://nlp.stanford.edu/pubs/conllst2011-coref.pdf")).setMentionList(mentionSet);
     List<Entity> entityList = new ArrayList<Entity>();
-    EntitySet esb = new EntitySet().setUuid(this.idF.getConcreteUUID()).setMetadata(metadata(" http://nlp.stanford.edu/pubs/conllst2011-coref.pdf")).setEntityList(entityList);
+    EntitySet esb = new EntitySet().setUuid(this.idF.getConcreteUUID()).setMetadata(metadata(" http://nlp.stanford.edu/pubs/conllst2011-coref.pdf"))
+        .setEntityList(entityList);
     for (AgigaCoref coref : doc.getCorefs()) {
       Entity e = convertCoref(emsb, coref, doc, toks);
       esb.addToEntityList(e);
     }
 
-    // comm.EntityMentionSet(emsb);
-    comm.addToEntityMentionSetList(emsb);
-    comm.addToEntitySetList(esb);
+    if (!emsb.isSetMentionList()) {
+      if (allowEmpties) {
+        logger.warn("No mentions found: creating empty mention list");
+        emsb.setMentionList(new ArrayList<EntityMention>());
+        comm.addToEntityMentionSetList(emsb);
+      }
+    } else {
+      comm.addToEntityMentionSetList(emsb);
+    }
+    if (!esb.isSetEntityList()) {
+      if (allowEmpties) {
+        logger.warn("No entities found: creating empty entity list");
+        esb.setEntityList(new ArrayList<Entity>());
+        comm.addToEntitySetList(esb);
+      }
+    } else {
+      comm.addToEntitySetList(esb);
+    }
     return comm;
   }
 
@@ -424,9 +476,7 @@ public class AgigaConverter {
     comm.setText(flattenText(doc));
     comm.setType("News");
     comm.setUuid(this.idF.getConcreteUUID());
-    AnnotationMetadata md = new AnnotationMetadata()
-      .setTool("Concrete-agiga 3.3.6-SNAPSHOT")
-      .setTimestamp(System.currentTimeMillis() / 1000);
+    AnnotationMetadata md = new AnnotationMetadata().setTool("Concrete-agiga 3.3.6-SNAPSHOT").setTimestamp(System.currentTimeMillis() / 1000);
     comm.setMetadata(md);
     return comm;
   }
@@ -444,9 +494,9 @@ public class AgigaConverter {
     String rawExtractionString = args[1];
     boolean rawExtraction = Boolean.parseBoolean(rawExtractionString);
     if (rawExtraction)
-        logger.info("Extracting only raw Agiga documents.");
+      logger.info("Extracting only raw Agiga documents.");
     else
-        logger.info("Extracting Agiga documents and annotations.");
+      logger.info("Extracting Agiga documents and annotations.");
 
     String outputDirPath = args[0];
     File outputDir = new File(outputDirPath);
@@ -481,7 +531,7 @@ public class AgigaConverter {
         String outFilePath = outputDir + File.separator + doc.getDocId() + ".thrift";
         File outFile = new File(outFilePath);
         if (outFile.exists())
-            outFile.delete();
+          outFile.delete();
         outFile.createNewFile();
         try (FileOutputStream fos = new FileOutputStream(outFile)) {
           Communication comm;
