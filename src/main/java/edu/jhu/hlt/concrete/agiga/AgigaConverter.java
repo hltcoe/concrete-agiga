@@ -3,7 +3,9 @@ package edu.jhu.hlt.concrete.agiga;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TBinaryProtocol;
@@ -301,6 +303,9 @@ public class AgigaConverter {
     if (tokId == 0) {
       throw new RuntimeException("No tokens were processed for agiga sentence " + sent);
     }
+    lemma.setTaggingType("LEMMA");
+    pos.setTaggingType("POS");
+    ner.setTaggingType("NER");
     tb.setTokenList(tl);
     tb.addToTokenTaggingList(lemma);
     tb.addToTokenTaggingList(pos);
@@ -400,33 +405,170 @@ public class AgigaConverter {
     return sb.toString();
   }
 
+  /**
+   * Given M different NER tagging theories of a sentence with N tokens, return an M x N String array of these tags, or null if no NER theories found.
+   */
+  private String[][] getNETags(Tokenization tokenization) {
+    int numTokens = tokenization.getTokenList().getTokenList().size();
+    int numTaggings = 0;
+    for (TokenTagging tt : tokenization.getTokenTaggingList()) {
+      if (!tt.isSetTaggingType() || !tt.getTaggingType().equals("NER")) {
+        continue;
+      }
+      numTaggings++;
+    }
+    if (numTaggings == 0) {
+      logger.warn("No NE Tag theories found in tokenization " + tokenization.getUuid());
+      return null;
+    }
+    String[][] neTags = new String[numTaggings][];
+    for (int i = 0; i < numTaggings; i++) {
+      neTags[i] = new String[numTokens];
+    }
+    int which = -1;
+    for (TokenTagging tt : tokenization.getTokenTaggingList()) {
+      if (!tt.isSetTaggingType() || !tt.getTaggingType().equals("NER")) {
+        continue;
+      }
+      which++;
+      int whichTIndex = -1;
+      for (TaggedToken tagTok : tt.getTaggedTokenList()) {
+        whichTIndex++;
+        if (!tagTok.isSetTokenIndex()) {
+          logger.warn("token index in " + tokenization.getUuid() + " is not set");
+          continue;
+        }
+        if (!tagTok.isSetTag()) {
+          logger.warn("token tag in " + tokenization.getUuid() + " is not set");
+          continue;
+        }
+        int ttIdx = tagTok.getTokenIndex();
+        if (whichTIndex != ttIdx) {
+          logger.error("in tokenization " + tokenization.getUuid() + ", token index " + ttIdx + " does not match what it should (" + whichTIndex + ")");
+        }
+        neTags[which][ttIdx] = tagTok.getTag();
+      }
+    }
+    return neTags;
+  }
+
+  /**
+   * Returns the most common non-other entity type within a sequence. This first looks at the NE type for the anchor token of the mention, if given. If the
+   * anchor isn't given, then the span given by {@code em.tokens} is used. The algorithm aggregates over all possible, non-OTHER NE tags for the appropriate
+   * "span." The default return type is &quot;Unknown,&quot; which happens
+   * <ol>
+   * <li>if all tokens within {@code em.tokens} are OTHER, or</li>
+   * <li>if no NE theories exist, or</li>
+   * <li>if the anchor token is OTHER.</li>
+   * </ol>
+   */
+  private String getEntityMentionType(EntityMention em, Tokenization tokenization) {
+    String UNK = "Unknown";
+    TokenRefSequence trs = em.getTokens();
+    int anchor = trs.getAnchorTokenIndex();
+    String[][] neTags = getNETags(tokenization);
+    if (neTags == null) {
+      return UNK;
+    }
+    if (neTags.length == 1 && anchor >= 0) {
+      String[] slice = neTags[0];
+      if (slice[anchor] == null)
+        return UNK;
+      else if (slice[anchor] == null || slice[anchor].equals("O"))
+        return UNK;
+      else
+        return slice[anchor];
+    } else {
+      // we're going to iterate over a range
+      int left = -1, right = -1;
+      // if the anchor is given, then the range is just [x, x+1)
+      if (anchor >= 0) {
+        left = anchor;
+        right = anchor + 1;
+      } else {
+        List<Integer> idxList = trs.getTokenIndexList();
+        left = idxList.get(0);
+        right = idxList.get(idxList.size() - 1);
+      }
+      Map<String, Integer> counter = new HashMap<String, Integer>();
+      int maxI = -1;
+      String maxType = null;
+      for (int n = 0; n < neTags.length; n++) {
+        for (int i = left; i < right; i++) {
+          String type = neTags[n][i];
+          if (type.equals("O")) {
+            continue;
+          }
+          if (counter.get(type) == null) {
+            counter.put(type, 0);
+          }
+          int num = counter.get(type) + 1;
+          counter.put(type, num);
+          if (num > maxI) {
+            maxI = num;
+            maxType = type;
+          }
+        }
+      }
+      return maxI > 0 ? maxType : UNK;
+    }
+  }
+
   public EntityMention convertMention(AgigaMention m, AgigaDocument doc, UUID corefSet, Tokenization tokenization) {
     String mstring = extractMentionString(m, doc);
 
-    return new EntityMention().setUuid(this.idF.getConcreteUUID()).setTokens(extractTokenRefSequence(m, tokenization.getUuid())).setEntityType("Unknown")
-        .setPhraseType("Name") // TODO warn users that this may not be accurate
+    EntityMention em = new EntityMention().setUuid(this.idF.getConcreteUUID()).setTokens(extractTokenRefSequence(m, tokenization.getUuid()));
+    String emType = getEntityMentionType(em, tokenization);
+    em.setEntityType(emType).setPhraseType("Name") // TODO warn users that this may not be accurate
         .setConfidence(1f).setText(mstring); // TODO merge this an method below
-
+    return em;
   }
 
   /**
    * adds EntityMentions to EnityMentionSet.Builder creates and returns an Entity This throws a runtime exception when an entity does not have any mentions AND
-   * when {@code allowEmpties} is false.
+   * when {@code allowEmpties} is false. The entity type is set to be the type of the representative mention if either the representative mention is the only
+   * mention with a set type, or if the most frequently seen mention type is the same as the representative mention type. Otherwise, the entity is assigned type
+   * "Other," and a notice is logged.
    */
   public Entity convertCoref(EntityMentionSet emsb, AgigaCoref coref, AgigaDocument doc, List<Tokenization> toks) {
     if (coref.getMentions().isEmpty() && !allowEmpties) {
       throw new RuntimeException("Entity does not have any mentions");
     }
-    Entity entBuilder = new Entity().setUuid(this.idF.getConcreteUUID()).setType("Other");
+
+    Entity entBuilder = new Entity().setUuid(this.idF.getConcreteUUID());
+    Map<String, Integer> counter = new HashMap<String, Integer>();
+    int maxI = -1;
+    String maxEType = null;
+    String repEntType = null;
+
     for (AgigaMention m : coref.getMentions()) {
       EntityMention em = convertMention(m, doc, this.idF.getConcreteUUID(), toks.get(m.getSentenceIdx()));
       if (m.isRepresentative()) {
         String mentionString = extractMentionString(m, doc);
         entBuilder.setCanonicalName(mentionString);
+        repEntType = em.getEntityType();
+      }
+      if (!counter.containsKey(em.getEntityType())) {
+        counter.put(em.getEntityType(), 0);
+      }
+      int num = counter.get(em.getEntityType()) + 1;
+      counter.put(em.getEntityType(), num);
+      if (num > maxI) {
+        maxI = num;
+        maxEType = em.getEntityType();
       }
       emsb.addToMentionList(em);
       entBuilder.addToMentionIdList(em.getUuid());
     }
+
+    if (maxEType != null && repEntType != null && repEntType.equals(maxEType)) {
+      entBuilder.setType(repEntType);
+    } else {
+      logger.debug("For entity " + entBuilder.getUuid() + ", the representative entity type " + repEntType + " isn't the same as the max seen mention type "
+          + maxEType + "; setting entity type to Other");
+      entBuilder.setType("Other");
+    }
+
     if (!entBuilder.isSetMentionIdList()) {
       entBuilder.setMentionIdList(new ArrayList<UUID>());
     }
