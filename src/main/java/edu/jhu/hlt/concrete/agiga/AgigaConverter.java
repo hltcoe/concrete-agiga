@@ -12,6 +12,7 @@ import org.apache.thrift.protocol.TBinaryProtocol;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import concrete.tools.AnnotationException;
 import edu.jhu.agiga.AgigaCoref;
 import edu.jhu.agiga.AgigaDocument;
 import edu.jhu.agiga.AgigaMention;
@@ -339,10 +340,10 @@ public class AgigaConverter {
    * as long as it is non-negative. Otherwise, this will throw a runtime exception. <br/>
    * A runtime exception is thrown if the provided sentence is empty.
    */
-  public Sentence convertSentence(AgigaSentence sent, int charsFromStartOfCommunication, List<Tokenization> addTo) {
-    if (sent != null && sent.getTokens() != null && sent.getTokens().isEmpty()) {
-      throw new RuntimeException("AgigaSentence " + sent + " does not have any tokens to process");
-    }
+  public Sentence convertSentence(AgigaSentence sent, int charsFromStartOfCommunication, List<Tokenization> addTo) throws AnnotationException {
+    if (sent != null && sent.getTokens() != null && sent.getTokens().isEmpty()) 
+      throw new AnnotationException("AgigaSentence " + sent + " does not have any tokens to process");
+    
     Tokenization tokenization = convertTokenization(sent, charsFromStartOfCommunication);
     addTo.add(tokenization); // one tokenization per sentence
     Sentence concSent = new Sentence().setUuid(this.idF.getConcreteUUID());
@@ -352,9 +353,9 @@ public class AgigaConverter {
       if (charsFromStartOfCommunication < 0 && firstToken.getCharOffBegin() >= 0 && lastToken.getCharOffEnd() > firstToken.getCharOffBegin()) {
         concSent.setTextSpan(new TextSpan().setStart(firstToken.getCharOffBegin()).setEnding(lastToken.getCharOffEnd()));
       } else {
-        if (charsFromStartOfCommunication < 0) {
-          throw new RuntimeException("bad character offset of " + charsFromStartOfCommunication + " for converting sent " + sent);
-        }
+        if (charsFromStartOfCommunication < 0)
+          throw new AnnotationException("bad character offset of " + charsFromStartOfCommunication + " for converting sent " + sent);
+        
         concSent.setTextSpan(new TextSpan().setStart(charsFromStartOfCommunication).setEnding(charsFromStartOfCommunication + flattenText(sent).length()));
       }
     }
@@ -362,7 +363,7 @@ public class AgigaConverter {
     return concSent;
   }
 
-  public SentenceSegmentation sentenceSegment(AgigaDocument doc, UUID sectionId, List<Tokenization> addTo) {
+  public SentenceSegmentation sentenceSegment(AgigaDocument doc, UUID sectionId, List<Tokenization> addTo) throws AnnotationException {
 
     SentenceSegmentation sb = new SentenceSegmentation().setUuid(this.idF.getConcreteUUID()).setMetadata(metadata(" Stanford Sentence Splitting"));
 
@@ -381,8 +382,9 @@ public class AgigaConverter {
   /**
    * Note: this assumes that it will be called only once: that is, that there is only one section in the entire agiga document. Therefore, the provenance span
    * will span the entire text.
+   * @throws AnnotationException 
    */
-  public SectionSegmentation sectionSegment(AgigaDocument doc, String rawText, List<Tokenization> addTo) {
+  public SectionSegmentation sectionSegment(AgigaDocument doc, String rawText, List<Tokenization> addTo) throws AnnotationException {
 
     SectionSegmentation ss = new SectionSegmentation().setUuid(this.idF.getConcreteUUID()).setMetadata(metadata());
     Section concSect = new Section().setUuid(this.idF.getConcreteUUID()).setKind("Passage");
@@ -518,8 +520,8 @@ public class AgigaConverter {
     String mstring = extractMentionString(m, doc);
 
     EntityMention em = new EntityMention().setUuid(this.idF.getConcreteUUID()).setTokens(extractTokenRefSequence(m, tokenization.getUuid()));
-    String emType = getEntityMentionType(em, tokenization);
-    em.setEntityType(emType).setPhraseType("Name") // TODO warn users that this may not be accurate
+    // String emType = getEntityMentionType(em, tokenization);
+    em.setPhraseType("Name") // TODO warn users that this may not be accurate
         .setConfidence(1f).setText(mstring); // TODO merge this an method below
     return em;
   }
@@ -536,38 +538,38 @@ public class AgigaConverter {
     }
 
     Entity entBuilder = new Entity().setUuid(this.idF.getConcreteUUID());
-    Map<String, Integer> counter = new HashMap<String, Integer>();
-    int maxI = -1;
-    String maxEType = null;
-    String repEntType = null;
+//    Map<String, Integer> counter = new HashMap<String, Integer>();
+//    int maxI = -1;
+//    String maxEType = null;
+//    String repEntType = null;
 
     for (AgigaMention m : coref.getMentions()) {
       EntityMention em = convertMention(m, doc, this.idF.getConcreteUUID(), toks.get(m.getSentenceIdx()));
       if (m.isRepresentative()) {
         String mentionString = extractMentionString(m, doc);
         entBuilder.setCanonicalName(mentionString);
-        repEntType = em.getEntityType();
-      }
-      if (!counter.containsKey(em.getEntityType())) {
-        counter.put(em.getEntityType(), 0);
-      }
-      int num = counter.get(em.getEntityType()) + 1;
-      counter.put(em.getEntityType(), num);
-      if (num > maxI) {
-        maxI = num;
-        maxEType = em.getEntityType();
+//        repEntType = em.getEntityType();
+//      }
+//      if (!counter.containsKey(em.getEntityType())) {
+//        counter.put(em.getEntityType(), 0);
+//      }
+//      int num = counter.get(em.getEntityType()) + 1;
+//      counter.put(em.getEntityType(), num);
+//      if (num > maxI) {
+//        maxI = num;
+//        maxEType = em.getEntityType();
       }
       emsb.addToMentionList(em);
       entBuilder.addToMentionIdList(em.getUuid());
     }
 
-    if (maxEType != null && repEntType != null && repEntType.equals(maxEType)) {
-      entBuilder.setType(repEntType);
-    } else {
-      logger.debug("For entity " + entBuilder.getUuid() + ", the representative entity type " + repEntType + " isn't the same as the max seen mention type "
-          + maxEType + "; setting entity type to Other");
-      entBuilder.setType("Other");
-    }
+//    if (maxEType != null && repEntType != null && repEntType.equals(maxEType)) {
+//      entBuilder.setType(repEntType);
+//    } else {
+//      logger.debug("For entity " + entBuilder.getUuid() + ", the representative entity type " + repEntType + " isn't the same as the max seen mention type "
+//          + maxEType + "; setting entity type to Other");
+//      entBuilder.setType("Other");
+//    }
 
     if (!entBuilder.isSetMentionIdList()) {
       entBuilder.setMentionIdList(new ArrayList<UUID>());
@@ -575,7 +577,7 @@ public class AgigaConverter {
     return entBuilder;
   }
 
-  public Communication convertDoc(AgigaDocument doc) {
+  public Communication convertDoc(AgigaDocument doc) throws AnnotationException {
     Communication comm = extractRawCommunication(doc);
     List<Tokenization> toks = new ArrayList<Tokenization>();
     comm.addToSectionSegmentationList(sectionSegment(doc, comm.text, toks));
