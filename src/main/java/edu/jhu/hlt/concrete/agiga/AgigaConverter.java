@@ -187,7 +187,15 @@ public class AgigaConverter {
   }
 
   public TokenRefSequence extractTokenRefSequence(AgigaMention m, UUID uuid) {
-    return extractTokenRefSequence(m.getStartTokenIdx(), m.getEndTokenIdx(), m.getHeadTokenIdx(), uuid);
+      int start = m.getStartTokenIdx();
+      int end = m.getEndTokenIdx();
+      if (end - start <= 0) {
+          throw new RuntimeException("Calling extractTokenRefSequence on mention " + m 
+                                     + " with head = " + m.getHeadTokenIdx() + ", UUID = "
+                                     + uuid);
+
+      }
+      return extractTokenRefSequence(start, end, m.getHeadTokenIdx(), uuid);
   }
 
   /**
@@ -542,6 +550,12 @@ public class AgigaConverter {
     String repEntType = null;
 
     for (AgigaMention m : coref.getMentions()) {
+      int start = m.getStartTokenIdx();
+      int end = m.getEndTokenIdx();
+      if(end - start <= 0) {
+          logger.error("SKIPPING AgigaMention " + m + " in doc " + doc.getDocId() + " has end not strictly after start");
+          continue;
+      }
       EntityMention em = convertMention(m, doc, this.idF.getConcreteUUID(), toks.get(m.getSentenceIdx()));
       if (m.isRepresentative()) {
         String mentionString = extractMentionString(m, doc);
