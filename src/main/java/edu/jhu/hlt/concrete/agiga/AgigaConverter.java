@@ -203,6 +203,9 @@ public class AgigaConverter {
           TokenRefSequence tb = new TokenRefSequence();
           tb.setTokenizationId(uuid)
               .setTokenIndexList(new ArrayList<Integer>());
+          if(m.getHeadTokenIdx() >= 0) {
+              tb.setAnchorTokenIndex(m.getHeadTokenIdx());
+          }
           logger.warn("Creating an EMPTY mention for mention " + m + " with UUID = " + uuid);
           return tb;          
       }
