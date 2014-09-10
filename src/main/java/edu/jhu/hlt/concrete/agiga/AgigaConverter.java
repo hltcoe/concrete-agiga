@@ -186,14 +186,25 @@ public class AgigaConverter {
     return cb.id;
   }
 
+  /**
+   * In order to allow for possibly empty mentions, this will always return
+   * a validating TokenRefSequence, provided m.end &gt;= m.start. When the
+   * end points are equal, the token index list will be the empty list, and
+   * a warning will be logged.
+   */
   public TokenRefSequence extractTokenRefSequence(AgigaMention m, UUID uuid) {
       int start = m.getStartTokenIdx();
       int end = m.getEndTokenIdx();
-      if (end - start <= 0) {
+      if (end - start < 0) {
           throw new RuntimeException("Calling extractTokenRefSequence on mention " + m 
                                      + " with head = " + m.getHeadTokenIdx() + ", UUID = "
                                      + uuid);
-
+      } else if(end == start) {
+          TokenRefSequence tb = new TokenRefSequence();
+          tb.setTokenizationId(uuid)
+              .setTokenIndexList(new ArrayList<Integer>());
+          logger.warn("Creating an EMPTY mention for mention " + m + " with UUID = " + uuid);
+          return tb;          
       }
       return extractTokenRefSequence(start, end, m.getHeadTokenIdx(), uuid);
   }
@@ -467,7 +478,8 @@ public class AgigaConverter {
    * <ol>
    * <li>if all tokens within {@code em.tokens} are OTHER, or</li>
    * <li>if no NE theories exist, or</li>
-   * <li>if the anchor token is OTHER.</li>
+   * <li>if the anchor token is OTHER, </li>
+   * <li>if the mention is empty (so the token index list is the empty list).</li>
    * </ol>
    */
   private String getEntityMentionType(EntityMention em, Tokenization tokenization) {
@@ -475,7 +487,7 @@ public class AgigaConverter {
     TokenRefSequence trs = em.getTokens();
     int anchor = trs.getAnchorTokenIndex();
     String[][] neTags = getNETags(tokenization);
-    if (neTags == null) {
+    if (neTags == null || trs.getTokenIndexList().size() == 0) {
       return UNK;
     }
     if (neTags.length == 1 && anchor >= 0) {
@@ -524,8 +536,8 @@ public class AgigaConverter {
 
   public EntityMention convertMention(AgigaMention m, AgigaDocument doc, UUID corefSet, Tokenization tokenization) {
     String mstring = extractMentionString(m, doc);
-
-    EntityMention em = new EntityMention().setUuid(this.idF.getConcreteUUID()).setTokens(extractTokenRefSequence(m, tokenization.getUuid()));
+    TokenRefSequence trs = extractTokenRefSequence(m, tokenization.getUuid());
+    EntityMention em = new EntityMention().setUuid(this.idF.getConcreteUUID()).setTokens(trs);
     String emType = getEntityMentionType(em, tokenization);
     em.setEntityType(emType).setPhraseType("Name") // TODO warn users that this may not be accurate
         .setConfidence(1f).setText(mstring); // TODO merge this an method below
@@ -550,12 +562,6 @@ public class AgigaConverter {
     String repEntType = null;
 
     for (AgigaMention m : coref.getMentions()) {
-      int start = m.getStartTokenIdx();
-      int end = m.getEndTokenIdx();
-      if(end - start <= 0) {
-          logger.error("SKIPPING AgigaMention " + m + " in doc " + doc.getDocId() + " has end not strictly after start");
-          continue;
-      }
       EntityMention em = convertMention(m, doc, this.idF.getConcreteUUID(), toks.get(m.getSentenceIdx()));
       if (m.isRepresentative()) {
         String mentionString = extractMentionString(m, doc);
