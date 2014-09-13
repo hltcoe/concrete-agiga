@@ -2,6 +2,7 @@ package edu.jhu.hlt.concrete.agiga;
 
 import java.util.List;
 
+import concrete.tools.AnnotationException;
 import edu.jhu.agiga.AgigaDocument;
 import edu.jhu.agiga.AgigaSentence;
 import edu.jhu.agiga.AgigaToken;
@@ -11,6 +12,7 @@ import edu.jhu.hlt.concrete.SentenceSegmentation;
 import edu.jhu.hlt.concrete.Token;
 import edu.jhu.hlt.concrete.TokenTagging;
 import edu.jhu.hlt.concrete.Tokenization;
+import edu.jhu.hlt.concrete.UUID;
 import edu.jhu.hlt.concrete.util.ConcreteUUIDFactory;
 
 /**
@@ -77,10 +79,16 @@ public class AgigaAnnotationAdder {
         cTokenization.addToTokenTaggingList(lemma);
         cTokenization.addToTokenTaggingList(pos);
         cTokenization.addToTokenTaggingList(ner);
-        cTokenization.addToParseList(converter.stanford2concrete(aSent.getStanfordContituencyTree(), cTokenization.getUuid()));
-        cTokenization.addToDependencyParseList(converter.convertDependencyParse(aSent.getBasicDeps(), "basic-deps"));
-        cTokenization.addToDependencyParseList(converter.convertDependencyParse(aSent.getColDeps(), "col-deps"));
-        cTokenization.addToDependencyParseList(converter.convertDependencyParse(aSent.getColCcprocDeps(), "col-ccproc-deps"));
+        
+        UUID tzUUID = cTokenization.getUuid();
+        try {
+          cTokenization.addToParseList(converter.stanford2concrete(aSent.getStanfordContituencyTree(), tzUUID));
+        } catch (AnnotationException ae) {
+          throw new RuntimeException("Unsure how to proceed given exception.", ae);
+        }
+        cTokenization.addToDependencyParseList(converter.convertDependencyParse(aSent.getBasicDeps(), "basic-deps", tzUUID));
+        cTokenization.addToDependencyParseList(converter.convertDependencyParse(aSent.getColDeps(), "col-deps", tzUUID));
+        cTokenization.addToDependencyParseList(converter.convertDependencyParse(aSent.getColCcprocDeps(), "col-ccproc-deps", tzUUID));
     }
 
     /** Check that the {@link AgigaSentence} corresponds to the given Concrete {@link Tokenization}. */
