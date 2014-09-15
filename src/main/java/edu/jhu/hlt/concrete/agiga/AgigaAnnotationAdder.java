@@ -52,18 +52,18 @@ public class AgigaAnnotationAdder {
     public static void addAgigaAnnosToConcreteTokenization(AgigaSentence aSent, Tokenization cTokenization) {
         checkMatchingTokenizations(aSent, cTokenization);
         AgigaConverter converter = new AgigaConverter(false);
-        
+        UUID tUuid = cTokenization.getUuid();
         TokenTagging lemma = new TokenTagging();
         lemma.setUuid(idF.getConcreteUUID());
-        lemma.setMetadata(converter.metadata());
+        lemma.setMetadata(converter.getLemmaMetadata(tUuid));
 
         TokenTagging pos = new TokenTagging();
         pos.setUuid(idF.getConcreteUUID());
-        pos.setMetadata(converter.metadata());
+        pos.setMetadata(converter.getPOSMetadata(tUuid));
 
         TokenTagging ner = new TokenTagging();
         ner.setUuid(idF.getConcreteUUID());
-        ner.setMetadata(converter.metadata());
+        ner.setMetadata(converter.getNERMetadata(tUuid));
                 
         for (int tokId = 0; tokId < aSent.getTokens().size(); tokId++) {
           AgigaToken tok = aSent.getTokens().get(tokId);

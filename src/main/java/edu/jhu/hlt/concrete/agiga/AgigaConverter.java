@@ -94,7 +94,9 @@ public class AgigaConverter {
     return addTextSpans;
   }
 
+  @Deprecated
   public AnnotationMetadata metadata() {
+    logger.warn("Calling deprecated function: setting toolname to null");
     return metadata(null);
   }
 
@@ -255,6 +257,44 @@ public class AgigaConverter {
   }
 
   /**
+   * Create a lemma-list metadata, properly setting the 
+   * theory dependency given a {@link Tokenization} {@code tUuid}.
+   */
+  public AnnotationMetadata getLemmaMetadata(UUID tUuid) {
+    TheoryDependencies taggingDeps = new TheoryDependencies();
+    taggingDeps.addToTokenizationTheoryList(tUuid);
+
+    AnnotationMetadata md = this.metadata(" Stanford CoreNLP lemmatizer http://nlp.stanford.edu/nlp/javadoc/javanlp/edu/stanford/nlp/pipeline/MorphaAnnotator.html")
+        .setDependencies(taggingDeps);
+    return md;
+  }
+
+  /**
+   * Create a POS-list metadata, properly setting the 
+   * theory dependency given a {@link Tokenization} {@code tUuid}.
+   */
+  public AnnotationMetadata getPOSMetadata(UUID tUuid) {
+    TheoryDependencies taggingDeps = new TheoryDependencies();
+    taggingDeps.addToTokenizationTheoryList(tUuid);
+    AnnotationMetadata md = this.metadata(" Stanford CoreNLP POS Tagger http://nlp.stanford.edu/nlp/javadoc/javanlp/edu/stanford/nlp/pipeline/POSTaggerAnnotator.html")
+        .setDependencies(taggingDeps);
+    return md;
+  }
+
+  /**
+   * Create a lemma-list metadata, properly setting the 
+   * theory dependency given a {@link Tokenization} {@code tUuid}.
+   */
+  public AnnotationMetadata getNERMetadata(UUID tUuid) {
+    TheoryDependencies taggingDeps = new TheoryDependencies();
+    taggingDeps.addToTokenizationTheoryList(tUuid);
+    AnnotationMetadata md = this.metadata(" Stanford CoreNLP NER http://nlp.stanford.edu/nlp/javadoc/javanlp/edu/stanford/nlp/ie/NERClassifierCombiner.html")
+        .setDependencies(taggingDeps);
+    return md;
+  }
+
+
+  /**
    * Create a tokenization based on the given sentence. If we're looking to add textspans, then we will first default to using the token character offsets
    * within the sentence itself if charOffset is negative. If those are not set, then we will use the provided charOffset, as long as it is non-negative.
    * Otherwise, this will throw a runtime exception. <br/>
@@ -274,28 +314,28 @@ public class AgigaConverter {
     TheoryDependencies taggingDeps = new TheoryDependencies();
     taggingDeps.addToTokenizationTheoryList(tUuid);
 
-    AnnotationMetadata taggingMd = this.metadata()
-        .setDependencies(taggingDeps);
+    AnnotationMetadata lemmaMd = this.getLemmaMetadata(tUuid);
+    AnnotationMetadata posMd = this.getPOSMetadata(tUuid);
+    AnnotationMetadata nerMd = this.getNERMetadata(tUuid);
     
     TokenTagging lemma = new TokenTagging();
     lemma.setUuid(this.idF.getConcreteUUID());
-    lemma.setMetadata(taggingMd);
+    lemma.setMetadata(lemmaMd);
 
     TokenTagging pos = new TokenTagging();
     pos.setUuid(this.idF.getConcreteUUID());
-    pos.setMetadata(taggingMd);
+    pos.setMetadata(posMd);
 
     TokenTagging ner = new TokenTagging();
     ner.setUuid(this.idF.getConcreteUUID());
-    ner.setMetadata(taggingMd);
+    ner.setMetadata(nerMd);
 
     boolean trustGivenOffset = charOffset >= 0;
 
     TheoryDependencies td = new TheoryDependencies();
     td.addToSentenceTheoryList(sentenceSegmentationUUID);
 
-    tb
-      .setUuid(tUuid)
+    tb.setUuid(tUuid)
       .setKind(TokenizationKind.TOKEN_LIST);
     
     AnnotationMetadata md = metadata(" http://nlp.stanford.edu/software/tokensregex.shtml")
@@ -424,7 +464,7 @@ public class AgigaConverter {
   public SectionSegmentation sectionSegment(AgigaDocument doc, String rawText, List<Tokenization> addTo) throws AnnotationException {
     SectionSegmentation ss = new SectionSegmentation()
     .setUuid(this.idF.getConcreteUUID())
-    .setMetadata(metadata());
+    .setMetadata(metadata(" concrete-agiga converter"));
     Section concSect = new Section().setUuid(this.idF.getConcreteUUID()).setKind("Passage");
     if (addTextSpans)
       concSect.setTextSpan(new TextSpan().setStart(0).setEnding(rawText.length()));
