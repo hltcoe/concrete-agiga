@@ -57,7 +57,11 @@ public class AgigaConverter {
   public static final long annotationTime = System.currentTimeMillis();
 
   private static final Logger logger = LoggerFactory.getLogger(AgigaConverter.class);
-
+  
+  public static final String LEMMA_TOOL_NAME = "Stanford CoreNLP lemmatizer http://nlp.stanford.edu/nlp/javadoc/javanlp/edu/stanford/nlp/pipeline/MorphaAnnotator.html";
+  public static final String POS_TOOL_NAME = "Stanford CoreNLP POS Tagger http://nlp.stanford.edu/nlp/javadoc/javanlp/edu/stanford/nlp/pipeline/POSTaggerAnnotator.html";
+  public static final String NER_TOOL_NAME = "Stanford CoreNLP NER http://nlp.stanford.edu/nlp/javadoc/javanlp/edu/stanford/nlp/ie/NERClassifierCombiner.html";
+  
   private final ConcreteUUIDFactory idF = new ConcreteUUIDFactory();
 
   /**
@@ -94,21 +98,15 @@ public class AgigaConverter {
     return addTextSpans;
   }
 
-  @Deprecated
-  public AnnotationMetadata metadata() {
-    logger.warn("Calling deprecated function: setting toolname to null");
-    return metadata(null);
-  }
-
   public AnnotationMetadata metadata(String addToToolName) {
     String fullToolName = toolName;
     if (addToToolName != null)
-      fullToolName += addToToolName;
+      fullToolName += ": " + addToToolName;
 
-    AnnotationMetadata md = new AnnotationMetadata();
-    md.setTool(fullToolName);
-    md.setTimestamp(annotationTime);
-    md.setConfidence(1f);
+    AnnotationMetadata md = new AnnotationMetadata()
+      .setTool(fullToolName)
+      .setTimestamp(annotationTime)
+      .setConfidence(1f);
     return md;
   }
 
@@ -256,41 +254,43 @@ public class AgigaConverter {
     return db;
   }
 
+  private AnnotationMetadata createTokenizationDependentMetadata(UUID tokenizationUuid, String addlToolName) {
+    TheoryDependencies taggingDeps = new TheoryDependencies();
+    taggingDeps.addToTokenizationTheoryList(tokenizationUuid);
+    
+    AnnotationMetadata md = this.metadata(addlToolName)
+         .setDependencies(taggingDeps);
+    return md;
+  }
+  
   /**
-   * Create a lemma-list metadata, properly setting the 
-   * theory dependency given a {@link Tokenization} {@code tUuid}.
+   * Create a lemma-list tagging {@link AnnotationMetadata} object. 
+   * 
+   * @param tUuid
+   * @return 
    */
   public AnnotationMetadata getLemmaMetadata(UUID tUuid) {
-    TheoryDependencies taggingDeps = new TheoryDependencies();
-    taggingDeps.addToTokenizationTheoryList(tUuid);
-
-    AnnotationMetadata md = this.metadata(" Stanford CoreNLP lemmatizer http://nlp.stanford.edu/nlp/javadoc/javanlp/edu/stanford/nlp/pipeline/MorphaAnnotator.html")
-        .setDependencies(taggingDeps);
-    return md;
+    return this.createTokenizationDependentMetadata(tUuid, LEMMA_TOOL_NAME);
   }
 
   /**
-   * Create a POS-list metadata, properly setting the 
-   * theory dependency given a {@link Tokenization} {@code tUuid}.
+   * Create a POS tagging {@link AnnotationMetadata} object. 
+   * 
+   * @param tUuid
+   * @return
    */
   public AnnotationMetadata getPOSMetadata(UUID tUuid) {
-    TheoryDependencies taggingDeps = new TheoryDependencies();
-    taggingDeps.addToTokenizationTheoryList(tUuid);
-    AnnotationMetadata md = this.metadata(" Stanford CoreNLP POS Tagger http://nlp.stanford.edu/nlp/javadoc/javanlp/edu/stanford/nlp/pipeline/POSTaggerAnnotator.html")
-        .setDependencies(taggingDeps);
-    return md;
+    return this.createTokenizationDependentMetadata(tUuid, POS_TOOL_NAME);
   }
 
   /**
-   * Create a lemma-list metadata, properly setting the 
-   * theory dependency given a {@link Tokenization} {@code tUuid}.
+   * Create an NER tagging {@link AnnotationMetadata} object. 
+   * 
+   * @param tUuid
+   * @return
    */
   public AnnotationMetadata getNERMetadata(UUID tUuid) {
-    TheoryDependencies taggingDeps = new TheoryDependencies();
-    taggingDeps.addToTokenizationTheoryList(tUuid);
-    AnnotationMetadata md = this.metadata(" Stanford CoreNLP NER http://nlp.stanford.edu/nlp/javadoc/javanlp/edu/stanford/nlp/ie/NERClassifierCombiner.html")
-        .setDependencies(taggingDeps);
-    return md;
+    return this.createTokenizationDependentMetadata(tUuid, NER_TOOL_NAME);
   }
 
 
