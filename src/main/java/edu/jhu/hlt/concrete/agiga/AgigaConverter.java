@@ -464,7 +464,7 @@ public class AgigaConverter {
   public SectionSegmentation sectionSegment(AgigaDocument doc, String rawText, List<Tokenization> addTo) throws AnnotationException {
     SectionSegmentation ss = new SectionSegmentation()
     .setUuid(this.idF.getConcreteUUID())
-    .setMetadata(metadata(" concrete-agiga converter"));
+    .setMetadata(metadata("Concrete-agiga converter"));
     Section concSect = new Section().setUuid(this.idF.getConcreteUUID()).setKind("Passage");
     if (addTextSpans)
       concSect.setTextSpan(new TextSpan().setStart(0).setEnding(rawText.length()));
