@@ -105,8 +105,7 @@ public class AgigaConverter {
 
     AnnotationMetadata md = new AnnotationMetadata()
       .setTool(fullToolName)
-      .setTimestamp(annotationTime)
-      .setConfidence(1f);
+      .setTimestamp(annotationTime);
     return md;
   }
 
