@@ -71,6 +71,8 @@ public class AgigaConverter {
 
   private boolean addTextSpans;
 
+  private boolean storeOffsetInRaw;
+
   /**
    * @param addTextSpans
    *          Because textSpans are merely "provenance" spans, and serve merely to indicate the original span that gave rise to a particular annotation span, we
@@ -80,6 +82,7 @@ public class AgigaConverter {
   public AgigaConverter(boolean addTextSpans) {
     this.addTextSpans = addTextSpans;
     this.allowEmpties = false;
+    this.storeOffsetInRaw = true;
   }
 
   /**
@@ -92,6 +95,7 @@ public class AgigaConverter {
   public AgigaConverter(boolean addTextSpans, boolean allowEmpties) {
     this.addTextSpans = addTextSpans;
     this.allowEmpties = allowEmpties;
+    this.storeOffsetInRaw = true;
   }
 
   public boolean isAddingTextSpans() {
@@ -292,6 +296,47 @@ public class AgigaConverter {
     return this.createTokenizationDependentMetadata(tUuid, NER_TOOL_NAME);
   }
 
+    private void verifySetTextSpanArgs(int start, int end,
+                                       int computedStart, 
+                                       int computedEnd) {
+        if(end <= start) {
+            throw new RuntimeException("cannot call setTextSpans with end = "+ end + " <= start = " + start);
+        }
+        if(computedEnd <= computedStart) {
+            throw new RuntimeException("cannot call setTextSpans with computedEnd = "+ computedEnd + " <= computedStart = " + computedStart);
+        }
+        if(start < 0 || end < 0){
+            throw new RuntimeException("cannot call setTextSpans with negative endpoints: end = "+ end + ", start = " + start);
+        }
+        if(storeOffsetInRaw && (computedStart < 0 || computedEnd < 0)) {
+            throw new RuntimeException("Cannot bptj store agiga offsets in raw and call setTextSpans with negative computed endpoints: start = " + computedStart +", computedEnd = " + computedEnd);
+        }
+    }
+
+    public void setTextSpans(Token token, int start, int end,
+                             int computedStart, 
+                             int computedEnd) {
+        verifySetTextSpanArgs(start, end, computedStart, computedEnd);
+      if(storeOffsetInRaw) {
+          token.setRawTextSpan(new TextSpan().setStart(start).setEnding(end));
+          token.setTextSpan(new TextSpan().setStart(computedStart).setEnding(computedEnd));
+      } else {
+          token.setTextSpan(new TextSpan().setStart(start).setEnding(end));
+      }
+  }
+
+    public void setTextSpans(Sentence sentence, int start, int end,
+                             int computedStart, 
+                             int computedEnd) {
+        verifySetTextSpanArgs(start, end, computedStart, computedEnd);
+      if(storeOffsetInRaw) {
+          sentence.setRawTextSpan(new TextSpan().setStart(start).setEnding(end));
+          sentence.setTextSpan(new TextSpan().setStart(computedStart).setEnding(computedEnd));
+      } else {
+          sentence.setTextSpan(new TextSpan().setStart(start).setEnding(end));
+      }
+  }
+
 
   /**
    * Create a tokenization based on the given sentence. If we're looking to add textspans, then we will first default to using the token character offsets
@@ -343,20 +388,29 @@ public class AgigaConverter {
 
     int tokId = 0;
     TokenList tl = new TokenList();
+    int computedTokenStart = 0 + charOffset;
+    int computedTokenEnd = computedTokenStart;
     for (AgigaToken tok : sent.getTokens()) {
       int curTokId = tokId++;
 
       Token ttok = new Token().setTokenIndex(curTokId).setText(tok.getWord());
+      computedTokenEnd = computedTokenStart + tok.getWord().length();
       if (addTextSpans) {
-        if (charOffset < 0 && tok.getCharOffBegin() >= 0 && tok.getCharOffEnd() > tok.getCharOffBegin()) {
-          ttok.setTextSpan(new TextSpan().setStart(tok.getCharOffBegin()).setEnding(tok.getCharOffEnd()));
-        } else {
+        // if (charOffset < 0 && tok.getCharOffBegin() >= 0 && 
+        //     tok.getCharOffEnd() > tok.getCharOffBegin()) {
+        //     setTextSpans(ttk, tok.getCharOffBegin(), tok.getCharOffEnd(),
+        //                  computedTokenStart, computedTokenEnd);
+        // } else {
           if (charOffset < 0) {
-            throw new RuntimeException("Bad character offset of " + charOffset + " for sentence " + sent);
+              throw new RuntimeException("Bad character offset of " + charOffset + " for sentence " + sent);
           }
-          ttok.setTextSpan(new TextSpan().setStart(charOffset).setEnding(charOffset + tok.getWord().length()));
-        }
+          setTextSpans(ttok, tok.getCharOffBegin(), tok.getCharOffEnd(),
+                       computedTokenStart, computedTokenEnd);
+          //ttok.setTextSpan(new TextSpan().setStart(charOffset).setEnding(charOffset + tok.getWord().length()));
+          //}
       }
+      // add 1 for spaces
+      computedTokenStart = computedTokenEnd + 1;
       tl.addToTokenList(ttok);
       // token annotations
       lemma.addToTaggedTokenList(makeTaggedToken(tok.getLemma(), curTokId));
@@ -419,14 +473,18 @@ public class AgigaConverter {
     if (addTextSpans) {
       AgigaToken firstToken = sent.getTokens().get(0);
       AgigaToken lastToken = sent.getTokens().get(sent.getTokens().size() - 1);
-      if (charsFromStartOfCommunication < 0 && firstToken.getCharOffBegin() >= 0 && lastToken.getCharOffEnd() > firstToken.getCharOffBegin()) {
-        concSent.setTextSpan(new TextSpan().setStart(firstToken.getCharOffBegin()).setEnding(lastToken.getCharOffEnd()));
-      } else {
-        if (charsFromStartOfCommunication < 0)
+      //if (charsFromStartOfCommunication < 0 && firstToken.getCharOffBegin() >= 0 && lastToken.getCharOffEnd() > firstToken.getCharOffBegin()) {
+      //  concSent.setTextSpan(new TextSpan().setStart(firstToken.getCharOffBegin()).setEnding(lastToken.getCharOffEnd()));
+      //} else {
+      if (charsFromStartOfCommunication < 0) {
           throw new AnnotationException("bad character offset of " + charsFromStartOfCommunication + " for converting sent " + sent);
-        
-        concSent.setTextSpan(new TextSpan().setStart(charsFromStartOfCommunication).setEnding(charsFromStartOfCommunication + flattenText(sent).length()));
       }
+      
+      setTextSpans(concSent, 
+                   firstToken.getCharOffBegin(), lastToken.getCharOffEnd(),
+                   charsFromStartOfCommunication, charsFromStartOfCommunication + flattenText(sent).length());
+      //concSent.setTextSpan(new TextSpan().setStart(charsFromStartOfCommunication).setEnding(charsFromStartOfCommunication + flattenText(sent).length()));
+        //}
     }
     concSent.addToTokenizationList(tokenization);
     return concSent;
