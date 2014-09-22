@@ -348,10 +348,6 @@ public class AgigaConverter {
    * @throws AnnotationException 
    */
   public Tokenization convertTokenization(AgigaSentence sent, int charOffset, UUID sentenceSegmentationUUID) throws AnnotationException {
-    // TokenTagging.Builder normNerBuilder = TokenTagging.newBuilder()
-    // .setUuid(new UUID(java.util.UUID.randomUUID().toString()))
-    // .setMetadata(metadata());
-
     Tokenization tb = new Tokenization();
     UUID tUuid = this.idF.getConcreteUUID();
     
@@ -396,18 +392,11 @@ public class AgigaConverter {
       Token ttok = new Token().setTokenIndex(curTokId).setText(tok.getWord());
       computedTokenEnd = computedTokenStart + tok.getWord().length();
       if (addTextSpans) {
-        // if (charOffset < 0 && tok.getCharOffBegin() >= 0 && 
-        //     tok.getCharOffEnd() > tok.getCharOffBegin()) {
-        //     setTextSpans(ttk, tok.getCharOffBegin(), tok.getCharOffEnd(),
-        //                  computedTokenStart, computedTokenEnd);
-        // } else {
           if (charOffset < 0) {
               throw new RuntimeException("Bad character offset of " + charOffset + " for sentence " + sent);
           }
           setTextSpans(ttok, tok.getCharOffBegin(), tok.getCharOffEnd(),
                        computedTokenStart, computedTokenEnd);
-          //ttok.setTextSpan(new TextSpan().setStart(charOffset).setEnding(charOffset + tok.getWord().length()));
-          //}
       }
       // add 1 for spaces
       computedTokenStart = computedTokenEnd + 1;
@@ -473,9 +462,6 @@ public class AgigaConverter {
     if (addTextSpans) {
       AgigaToken firstToken = sent.getTokens().get(0);
       AgigaToken lastToken = sent.getTokens().get(sent.getTokens().size() - 1);
-      //if (charsFromStartOfCommunication < 0 && firstToken.getCharOffBegin() >= 0 && lastToken.getCharOffEnd() > firstToken.getCharOffBegin()) {
-      //  concSent.setTextSpan(new TextSpan().setStart(firstToken.getCharOffBegin()).setEnding(lastToken.getCharOffEnd()));
-      //} else {
       if (charsFromStartOfCommunication < 0) {
           throw new AnnotationException("bad character offset of " + charsFromStartOfCommunication + " for converting sent " + sent);
       }
@@ -483,8 +469,6 @@ public class AgigaConverter {
       setTextSpans(concSent, 
                    firstToken.getCharOffBegin(), lastToken.getCharOffEnd(),
                    charsFromStartOfCommunication, charsFromStartOfCommunication + flattenText(sent).length());
-      //concSent.setTextSpan(new TextSpan().setStart(charsFromStartOfCommunication).setEnding(charsFromStartOfCommunication + flattenText(sent).length()));
-        //}
     }
     concSent.addToTokenizationList(tokenization);
     return concSent;
