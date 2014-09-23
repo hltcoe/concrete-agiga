@@ -639,8 +639,9 @@ public class AgigaConverter {
     String mstring = extractMentionString(m, doc);
 
     EntityMention em = new EntityMention()
-      .setUuid(this.idF.getConcreteUUID())
-      .setTokens(extractTokenRefSequence(m, tokenization.getUuid()));
+        .setUuid(this.idF.getConcreteUUID())
+        .setTokens(extractTokenRefSequence(m, tokenization.getUuid()))
+        .setText(mstring);
     // String emType = getEntityMentionType(em, tokenization);
     //em.setPhraseType("Name") // TODO warn users that this may not be accurate
     //.setConfidence(1f).setText(mstring); // TODO merge this an method below
