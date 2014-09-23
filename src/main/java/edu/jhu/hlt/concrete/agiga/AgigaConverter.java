@@ -642,8 +642,8 @@ public class AgigaConverter {
       .setUuid(this.idF.getConcreteUUID())
       .setTokens(extractTokenRefSequence(m, tokenization.getUuid()));
     // String emType = getEntityMentionType(em, tokenization);
-    em.setPhraseType("Name") // TODO warn users that this may not be accurate
-        .setConfidence(1f).setText(mstring); // TODO merge this an method below
+    //em.setPhraseType("Name") // TODO warn users that this may not be accurate
+    //.setConfidence(1f).setText(mstring); // TODO merge this an method below
     return em;
   }
 
