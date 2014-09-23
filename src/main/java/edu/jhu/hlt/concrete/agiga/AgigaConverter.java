@@ -167,7 +167,17 @@ public class AgigaConverter {
     cb.setTag(root.value());
     cb.setTokenSequence(extractTokenRefSequence(left, right, null, tokenizationUUID));
 
-    Tree headTree = root.isLeaf() ? null : HEAD_FINDER.determineHead(root);
+    Tree headTree = null;
+	if (!root.isLeaf()) {
+		try {
+			headTree = HEAD_FINDER.determineHead(root);
+		} catch (java.lang.IllegalArgumentException iae) {
+			System.err.println(
+					"Failed to find head, falling back on rightmost constituent: "
+					+ iae.getMessage());
+			headTree = root.children()[root.numChildren() - 1];
+		}
+	}
     int i = 0, headTreeIdx = -1;
 
     int leftPtr = left;
