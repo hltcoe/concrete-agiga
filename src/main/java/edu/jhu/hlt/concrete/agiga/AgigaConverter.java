@@ -442,7 +442,8 @@ public class AgigaConverter {
   }
 
   public TaggedToken makeTaggedToken(String tag, int tokId) {
-    return new TaggedToken().setTokenIndex(tokId).setTag(tag).setConfidence(1f);
+    // return new TaggedToken().setTokenIndex(tokId).setTag(tag).setConfidence(1f);
+    return new TaggedToken().setTokenIndex(tokId).setTag(tag);
   }
 
   /**
