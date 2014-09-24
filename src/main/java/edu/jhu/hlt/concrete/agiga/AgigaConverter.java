@@ -161,23 +161,24 @@ public class AgigaConverter {
   private static final HeadFinder HEAD_FINDER = new SemanticHeadFinder();
 
   private int s2cHelper(Tree root, int[] idCounter, int left, int right, Parse p, UUID tokenizationUUID) throws AnnotationException {
-    assert (idCounter.length == 1);
+    // if (idCounter.length == 1);
+    if (idCounter.length != 1)
+      throw new AnnotationException("ID counter must be one, but was: " + idCounter.length);
+    
     Constituent cb = new Constituent();
     cb.setId(idCounter[0]++);
     cb.setTag(root.value());
     cb.setTokenSequence(extractTokenRefSequence(left, right, null, tokenizationUUID));
 
     Tree headTree = null;
-	if (!root.isLeaf()) {
-		try {
-			headTree = HEAD_FINDER.determineHead(root);
-		} catch (java.lang.IllegalArgumentException iae) {
-			System.err.println(
-					"Failed to find head, falling back on rightmost constituent: "
-					+ iae.getMessage());
-			headTree = root.children()[root.numChildren() - 1];
-		}
-	}
+    if (!root.isLeaf()) {
+      try {
+        headTree = HEAD_FINDER.determineHead(root);
+      } catch (java.lang.IllegalArgumentException iae) {
+        logger.warn("Failed to find head, falling back on rightmost constituent.", iae);
+        headTree = root.children()[root.numChildren() - 1];
+      }
+    }
     int i = 0, headTreeIdx = -1;
 
     int leftPtr = left;
@@ -362,9 +363,9 @@ public class AgigaConverter {
         if (charOffset < 0 && tok.getCharOffBegin() >= 0 && tok.getCharOffEnd() > tok.getCharOffBegin()) {
           ttok.setTextSpan(new TextSpan().setStart(tok.getCharOffBegin()).setEnding(tok.getCharOffEnd()));
         } else {
-          if (charOffset < 0) {
-            throw new RuntimeException("Bad character offset of " + charOffset + " for sentence " + sent);
-          }
+          if (charOffset < 0) 
+            throw new AnnotationException("Bad character offset of " + charOffset + " for sentence " + sent);
+          
           ttok.setTextSpan(new TextSpan().setStart(charOffset).setEnding(charOffset + tok.getWord().length()));
         }
       }
@@ -380,9 +381,9 @@ public class AgigaConverter {
       }
     }
 
-    if (tokId == 0) {
-      throw new RuntimeException("No tokens were processed for agiga sentence " + sent);
-    }
+    if (tokId == 0) 
+      throw new AnnotationException("No tokens were processed for agiga sentence: " + sent);
+    
     lemma.setTaggingType("LEMMA");
     pos.setTaggingType("POS");
     ner.setTaggingType("NER");
