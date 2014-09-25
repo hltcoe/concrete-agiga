@@ -140,6 +140,11 @@
       <artifactId>concrete-util</artifactId>
       <version>${concrete.version}</version>
     </dependency>
+    <dependency>
+      <groupId>edu.jhu.hlt</groupId>
+      <artifactId>concrete-validation</artifactId>
+      <version>${concrete.version}</version>
+    </dependency>
      <dependency>
        <groupId>org.apache.logging.log4j</groupId>
        <artifactId>log4j-api</artifactId>
