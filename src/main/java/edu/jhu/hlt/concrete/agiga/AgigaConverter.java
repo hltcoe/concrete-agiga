@@ -435,9 +435,8 @@ public class AgigaConverter {
     if (addTextSpans) {
       AgigaToken firstToken = sent.getTokens().get(0);
       AgigaToken lastToken = sent.getTokens().get(sent.getTokens().size() - 1);
-      if (charsFromStartOfCommunication < 0) {
+      if (charsFromStartOfCommunication < 0)
         throw new AnnotationException("bad character offset of " + charsFromStartOfCommunication + " for converting sent " + sent);
-      }
 
       TextSpan sentTS = new TextSpan(firstToken.getCharOffBegin(), lastToken.getCharOffEnd());
       boolean isValidSentTS = new ValidatableTextSpan(sentTS).isValid();
@@ -454,6 +453,7 @@ public class AgigaConverter {
         concSent.setRawTextSpan(compTS);
       }
     }
+    
     concSent.setTokenization(tokenization);
     return concSent;
   }
@@ -484,13 +484,7 @@ public class AgigaConverter {
    * @throws AnnotationException
    */
   public SectionSegmentation sectionSegment(AgigaDocument doc, String rawText, List<Tokenization> addTo) throws AnnotationException {
-    Section concSect = new Section(this.idF.getConcreteUUID(), "Passage");
-    if (addTextSpans)
-      concSect.setTextSpan(new TextSpan().setStart(0).setEnding(rawText.length()));
-
-    concSect.addToSentenceSegmentationList(sentenceSegment(doc, concSect.getUuid(), ss.getUuid(), addTo));
-    ss.addToSectionList(concSect);
-    return ss;
+    
   }
 
   public String extractMentionString(AgigaMention m, AgigaDocument doc) {
@@ -681,6 +675,16 @@ public class AgigaConverter {
     // comm.addToSectionSegmentationList(sectionSegment(doc, comm.text, toks));
     // TODO: go through sectionSegment() call hierarchy
     // TODO: kill this lingering list of Tokenizations
+
+    // Section the communication. 
+    String commText = comm.getText();
+    Section concSect = new Section(this.idF.getConcreteUUID(), "Passage");
+    if (addTextSpans)
+      concSect.setTextSpan(new TextSpan().setStart(0).setEnding(commText.length()));
+
+    // Perform sentence splitting.
+    concSect.addToSentenceSegmentationList(sentenceSegment(doc, concSect.getUuid(), ss.getUuid(), addTo));
+    
     // this must occur last so that the tokenizations have been added to toks
     List<EntityMention> mentionSet = new ArrayList<EntityMention>();
     EntityMentionSet emsb = new EntityMentionSet().setUuid(this.idF.getConcreteUUID())
