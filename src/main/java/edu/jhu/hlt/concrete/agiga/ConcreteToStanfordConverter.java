@@ -1,16 +1,7 @@
 package edu.jhu.hlt.concrete.agiga;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.zip.GZIPInputStream;
-
-import org.apache.thrift.TDeserializer;
-import org.apache.thrift.protocol.TBinaryProtocol;
-import org.apache.thrift.transport.TFileTransport;
 
 import edu.jhu.hlt.concrete.Dependency;
 import edu.jhu.hlt.concrete.DependencyParse;
@@ -82,7 +73,7 @@ public class ConcreteToStanfordConverter {
     // the WordLemmaTag label in converting it to a CoreLabel. Accordingly
     // we allow access to the labels here as well.
     public List<WordLemmaTag> getStanfordWordLemmaTags() {
-        Tokenization tokens = sent.getTokenizationList().get(0);
+        Tokenization tokens = sent.getTokenization();
         // Assumes one POS tag, or will only get the first found. 
         TokenTagging posTags = this.getPOSTags(tokens).get(0);
         List<WordLemmaTag> labels = new ArrayList<WordLemmaTag>();
@@ -111,7 +102,7 @@ public class ConcreteToStanfordConverter {
             nodes = getStanfordTreeGraphNodes(tokenizationTheory, dependencyTheory);
         }
 
-        Tokenization tok = sent.getTokenizationList().get(0);
+        Tokenization tok = sent.getTokenization();
         DependencyParse depParse = tok.getDependencyParseList().get(dependencyTheory);
         for (Dependency arc : depParse.getDependencyList()) {
             // Add one, since the tokens are zero-indexed but the TreeGraphNodes
@@ -150,7 +141,7 @@ public class ConcreteToStanfordConverter {
             nodes.add(treeNode);
         }
 
-        Tokenization tok = sent.getTokenizationList().get(0);
+        Tokenization tok = sent.getTokenization();
         DependencyParse depParse = tok.getDependencyParseList().get(dependencyTheory);
         for (Dependency arc : depParse.getDependencyList()) {
             // Add one, since the tokens are zero-indexed but the TreeGraphNodes
@@ -168,64 +159,4 @@ public class ConcreteToStanfordConverter {
 
         return nodes;
     }
-
-    /**
-     * Reads a Protocol Buffer file containing Commmunications, converts the
-     * dependency trees to Stanford objects, and prints them out in a human
-     * readable form.
-     */
-    public static void main(String[] args) throws IOException {
-        if (args.length < 1) {
-            System.err.println("usage: java "
-                    + ConcreteToStanfordConverter.class + " <input file>");
-            System.exit(1);
-        }
-        File inputFile = new File(args[0]);
-        if (!inputFile.exists()) {
-            System.err.println("ERROR: File does not exist: " + inputFile);
-            System.exit(1);
-        }
-
-        InputStream is = new FileInputStream(inputFile);
-        if (inputFile.getName().endsWith(".gz")) {
-            is = new GZIPInputStream(is);
-        }
-        
-        TDeserializer deserializer = new TDeserializer(new TBinaryProtocol.Factory());
-        TFileTransport tf = new TFileTransport(args[0], true);
-//        
-//        Communication communication;
-//        while ((communication = Communication.parseDelimitedFrom(is)) != null) {
-//            for (SectionSegmentation sectionSegmentation : communication.getSectionSegmentationList()) {
-//                for (Section section : sectionSegmentation.getSectionList()) {
-//                    for (SentenceSegmentation sentSegmentation : section.getSentenceSegmentationList()) {
-//                        for (Sentence sent : sentSegmentation.getSentenceList()) {
-//                            int i;
-//                            ConcreteToStanfordConverter scs = new ConcreteToStanfordConverter(sent);
-//                            i = 0;
-//                            for (WordLemmaTag tok : scs.getStanfordWordLemmaTags()) {
-//                                if (i++ > 0) {
-//                                    System.out.print(" ");
-//                                }
-//                                System.out.print(tok.word() + "/" + tok.tag());
-//                            }
-//                            System.out.println("");
-//                            i = 0;
-//                            for (TypedDependency td : scs.getStanfordTypedDependencies(0, 0)) {
-//                                if (i++ > 0) {
-//                                    System.out.print(", ");
-//                                }
-//                                System.out.print(td.gov() + "-->" + td.dep()
-//                                        + "/" + td.reln());
-//                            }
-//                            System.out.println("");
-//                            System.out.println("");
-//                        }
-//                    }
-//                }
-//            }
-//        }
-        is.close();
-    }
-
 }

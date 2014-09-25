@@ -8,7 +8,6 @@ import edu.jhu.agiga.AgigaSentence;
 import edu.jhu.agiga.AgigaToken;
 import edu.jhu.hlt.concrete.Section;
 import edu.jhu.hlt.concrete.Sentence;
-import edu.jhu.hlt.concrete.SentenceSegmentation;
 import edu.jhu.hlt.concrete.Token;
 import edu.jhu.hlt.concrete.TokenTagging;
 import edu.jhu.hlt.concrete.Tokenization;
@@ -25,8 +24,7 @@ public class AgigaAnnotationAdder {
     private static final ConcreteUUIDFactory idF = new ConcreteUUIDFactory();
 
     public static void addAgigaAnnosToSection(AgigaDocument aDoc, Section cSection) {
-        SentenceSegmentation cSs = cSection.getSentenceSegmentationList().get(0);
-        List<Sentence> cSents = cSs.getSentenceList();
+        List<Sentence> cSents = cSection.getSentenceList();
         List<AgigaSentence> aSents = aDoc.getSents();
         if (cSents.size() != aSents.size()) {
             throw new IllegalStateException("Mismatch between number of sentences: " + cSents.size() + " " + aSents.size());
@@ -42,7 +40,7 @@ public class AgigaAnnotationAdder {
      * Add the annotations found in an {@link AgigaSentence} to an existing Concrete {@link Sentence}.
      */
     public static void addAgigaAnnosToConcreteSent(AgigaSentence aSent, Sentence cSent) {
-        Tokenization cTokenization = cSent.getTokenizationList().get(0);
+        Tokenization cTokenization = cSent.getTokenization();
         addAgigaAnnosToConcreteTokenization(aSent, cTokenization);
     }
     
