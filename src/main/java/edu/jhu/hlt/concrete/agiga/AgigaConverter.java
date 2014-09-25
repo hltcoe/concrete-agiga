@@ -3,6 +3,7 @@ package edu.jhu.hlt.concrete.agiga;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,6 +44,7 @@ import edu.jhu.hlt.concrete.TokenTagging;
 import edu.jhu.hlt.concrete.Tokenization;
 import edu.jhu.hlt.concrete.TokenizationKind;
 import edu.jhu.hlt.concrete.UUID;
+import edu.jhu.hlt.concrete.communications.SuperCommunication;
 import edu.jhu.hlt.concrete.util.ConcreteUUIDFactory;
 import edu.jhu.hlt.concrete.validation.ValidatableTextSpan;
 import edu.stanford.nlp.trees.HeadFinder;
@@ -424,13 +426,11 @@ public class AgigaConverter {
    * @throws AnnotationException
    *           if the provided sentence is empty, or if the offsets are bad.
    */
-  public Sentence convertSentence(AgigaSentence sent, int charsFromStartOfCommunication, List<Tokenization> addTo, UUID sentenceSegmentationUUID)
-      throws AnnotationException {
+  public Sentence convertSentence(AgigaSentence sent, int charsFromStartOfCommunication) throws AnnotationException {
     if (sent != null && sent.getTokens() != null && sent.getTokens().isEmpty())
       throw new AnnotationException("AgigaSentence " + sent + " does not have any tokens to process");
 
     Tokenization tokenization = convertTokenization(sent, charsFromStartOfCommunication);
-    addTo.add(tokenization); // one tokenization per sentence
     Sentence concSent = new Sentence().setUuid(this.idF.getConcreteUUID());
     if (addTextSpans) {
       AgigaToken firstToken = sent.getTokens().get(0);
@@ -453,38 +453,9 @@ public class AgigaConverter {
         concSent.setRawTextSpan(compTS);
       }
     }
-    
+
     concSent.setTokenization(tokenization);
     return concSent;
-  }
-
-  public SentenceSegmentation sentenceSegment(AgigaDocument doc, UUID sectionId, UUID sectionSegmentationUUID, List<Tokenization> addTo)
-      throws AnnotationException {
-    TheoryDependencies td = new TheoryDependencies();
-    td.addToSectionTheoryList(sectionSegmentationUUID);
-
-    AnnotationMetadata md = metadata("Stanford Sentence Splitting").setDependencies(td);
-
-    int charsFromStartOfCommunication = 0; // communication only has one section
-    for (AgigaSentence sentence : doc.getSents()) {
-      if (sentence.getTokens().isEmpty()) {
-        logger.warn("Skipping empty sentence " + sentence + " in section with id " + sectionId);
-        continue;
-      }
-      sb.addToSentenceList(convertSentence(sentence, charsFromStartOfCommunication, addTo, sectionSegmentationUUID));
-      charsFromStartOfCommunication += flattenText(sentence).length() + 1; // +1 for newline at end of sentence
-    }
-    return sb;
-  }
-
-  /**
-   * Note: this assumes that it will be called only once: that is, that there is only one section in the entire agiga document. Therefore, the provenance span
-   * will span the entire text.
-   * 
-   * @throws AnnotationException
-   */
-  public SectionSegmentation sectionSegment(AgigaDocument doc, String rawText, List<Tokenization> addTo) throws AnnotationException {
-    
   }
 
   public String extractMentionString(AgigaMention m, AgigaDocument doc) {
@@ -671,26 +642,36 @@ public class AgigaConverter {
 
   public Communication convertDoc(AgigaDocument doc) throws AnnotationException {
     Communication comm = extractRawCommunication(doc);
-    List<Tokenization> toks = new ArrayList<Tokenization>();
-    // comm.addToSectionSegmentationList(sectionSegment(doc, comm.text, toks));
-    // TODO: go through sectionSegment() call hierarchy
-    // TODO: kill this lingering list of Tokenizations
 
-    // Section the communication. 
+    // Section the communication.
     String commText = comm.getText();
     Section concSect = new Section(this.idF.getConcreteUUID(), "Passage");
     if (addTextSpans)
       concSect.setTextSpan(new TextSpan().setStart(0).setEnding(commText.length()));
+    comm.addToSectionList(concSect);
 
     // Perform sentence splitting.
-    concSect.addToSentenceSegmentationList(sentenceSegment(doc, concSect.getUuid(), ss.getUuid(), addTo));
-    
-    // this must occur last so that the tokenizations have been added to toks
+    int charsFromStartOfCommunication = 0; // communication only has one section
+    for (AgigaSentence sentence : doc.getSents()) {
+      if (sentence.getTokens().isEmpty()) {
+        logger.warn("Skipping empty sentence " + sentence + " in section with id " + concSect.getUuid());
+        continue;
+      }
+
+      Sentence st = this.convertSentence(sentence, charsFromStartOfCommunication);
+      concSect.addToSentenceList(st);
+      // sb.addToSentenceList(convertSentence(sentence, charsFromStartOfCommunication, addTo, sectionSegmentationUUID));
+      charsFromStartOfCommunication += flattenText(sentence).length() + 1; // +1 for newline at end of sentence
+    }
+
+    // Retrieve the tokenizations. 
+    Collection<Tokenization> tokColl = new SuperCommunication(comm).generateTokenizationIdToTokenizationMap().values();
+    List<Tokenization> toks = new ArrayList<>(tokColl);
     List<EntityMention> mentionSet = new ArrayList<EntityMention>();
     EntityMentionSet emsb = new EntityMentionSet().setUuid(this.idF.getConcreteUUID())
-        .setMetadata(metadata(" http://nlp.stanford.edu/pubs/conllst2011-coref.pdf")).setMentionList(mentionSet);
+        .setMetadata(metadata("http://nlp.stanford.edu/pubs/conllst2011-coref.pdf")).setMentionList(mentionSet);
     List<Entity> entityList = new ArrayList<Entity>();
-    EntitySet esb = new EntitySet().setUuid(this.idF.getConcreteUUID()).setMetadata(metadata(" http://nlp.stanford.edu/pubs/conllst2011-coref.pdf"))
+    EntitySet esb = new EntitySet().setUuid(this.idF.getConcreteUUID()).setMetadata(metadata("http://nlp.stanford.edu/pubs/conllst2011-coref.pdf"))
         .setEntityList(entityList);
     for (AgigaCoref coref : doc.getCorefs()) {
       Entity e = convertCoref(emsb, coref, doc, toks);
@@ -701,20 +682,18 @@ public class AgigaConverter {
       if (allowEmpties) {
         logger.warn("No mentions found: creating empty mention list");
         emsb.setMentionList(new ArrayList<EntityMention>());
-        comm.addToEntityMentionSetList(emsb);
       }
-    } else {
-      comm.addToEntityMentionSetList(emsb);
     }
+    comm.addToEntityMentionSetList(emsb);
+    
     if (!esb.isSetEntityList()) {
       if (allowEmpties) {
         logger.warn("No entities found: creating empty entity list");
         esb.setEntityList(new ArrayList<Entity>());
-        comm.addToEntitySetList(esb);
       }
-    } else {
-      comm.addToEntitySetList(esb);
     }
+    comm.addToEntitySetList(esb);
+    
     return comm;
   }
 
