@@ -438,14 +438,14 @@ public class AgigaConverter {
       if (charsFromStartOfCommunication < 0)
         throw new AnnotationException("bad character offset of " + charsFromStartOfCommunication + " for converting sent " + sent);
 
-      TextSpan sentTS = new TextSpan(firstToken.getCharOffBegin(), lastToken.getCharOffEnd());
+      TextSpan sentTS = new TextSpan(charsFromStartOfCommunication, charsFromStartOfCommunication + flattenText(sent).length()); 
       boolean isValidSentTS = new ValidatableTextSpan(sentTS).isValid();
       if (!isValidSentTS)
         throw new AnnotationException("TextSpan was not valid: " + sentTS.toString());
       concSent.setTextSpan(sentTS);
 
       if (this.storeOffsetInRaw) {
-        TextSpan compTS = new TextSpan(charsFromStartOfCommunication, charsFromStartOfCommunication + flattenText(sent).length());
+        TextSpan compTS = new TextSpan(firstToken.getCharOffBegin(), lastToken.getCharOffEnd()); 
         boolean isValidCompTS = new ValidatableTextSpan(compTS).isValid();
         if (!isValidCompTS)
           throw new AnnotationException("Computed TextSpan was not valid: " + compTS.toString());
