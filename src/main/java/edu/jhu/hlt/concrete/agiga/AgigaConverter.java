@@ -355,14 +355,14 @@ public class AgigaConverter {
         if (charOffset < 0)
           throw new AnnotationException("Bad character offset of " + charOffset + " for sentence " + sent);
 
-        TextSpan tokTS = new TextSpan(tok.getCharOffBegin(), tok.getCharOffEnd());
+        TextSpan tokTS = new TextSpan(computedTokenStart, computedTokenEnd);
         boolean isValidTokTS = new ValidatableTextSpan(tokTS).isValid();
         if (!isValidTokTS)
           throw new AnnotationException("Token TextSpan was invalid: " + tokTS.toString());
         ttok.setTextSpan(tokTS);
 
         if (this.storeOffsetInRaw) {
-          TextSpan compTS = new TextSpan(computedTokenStart, computedTokenEnd);
+          TextSpan compTS = new TextSpan(tok.getCharOffBegin(), tok.getCharOffEnd()); 
           boolean isValidCompTS = new ValidatableTextSpan(compTS).isValid();
           if (!isValidCompTS)
             throw new AnnotationException("Computed/Raw TextSpan was invalid: " + compTS.toString());
