@@ -206,8 +206,27 @@ public class AgigaConverter {
     return cb.id;
   }
 
+  /**
+   * In order to allow for possibly empty mentions, this will always return a validating TokenRefSequence, provided m.end &gt;= m.start. When the end points are
+   * equal, the token index list will be the empty list, and a warning will be logged.
+   * 
+   * @throws AnnotationException
+   */
   public TokenRefSequence extractTokenRefSequence(AgigaMention m, UUID uuid) throws AnnotationException {
-    return extractTokenRefSequence(m.getStartTokenIdx(), m.getEndTokenIdx(), m.getHeadTokenIdx(), uuid);
+    int start = m.getStartTokenIdx();
+    int end = m.getEndTokenIdx();
+    if (end - start < 0) 
+      throw new AnnotationException("Calling extractTokenRefSequence on mention " + m + " with head = " + m.getHeadTokenIdx() + ", UUID = " + uuid);
+    else if (end == start) {
+      TokenRefSequence tb = new TokenRefSequence();
+      tb.setTokenizationId(uuid).setTokenIndexList(new ArrayList<Integer>());
+      if (m.getHeadTokenIdx() >= 0)
+        tb.setAnchorTokenIndex(m.getHeadTokenIdx());
+      
+      logger.warn("Creating an EMPTY mention for mention " + m + " with UUID = " + uuid);
+      return tb;
+    }
+    return extractTokenRefSequence(start, end, m.getHeadTokenIdx(), uuid);
   }
 
   /**
@@ -362,7 +381,7 @@ public class AgigaConverter {
         ttok.setTextSpan(tokTS);
 
         if (this.storeOffsetInRaw) {
-          TextSpan compTS = new TextSpan(tok.getCharOffBegin(), tok.getCharOffEnd()); 
+          TextSpan compTS = new TextSpan(tok.getCharOffBegin(), tok.getCharOffEnd());
           boolean isValidCompTS = new ValidatableTextSpan(compTS).isValid();
           if (!isValidCompTS)
             throw new AnnotationException("Computed/Raw TextSpan was invalid: " + compTS.toString());
@@ -438,14 +457,14 @@ public class AgigaConverter {
       if (charsFromStartOfCommunication < 0)
         throw new AnnotationException("bad character offset of " + charsFromStartOfCommunication + " for converting sent " + sent);
 
-      TextSpan sentTS = new TextSpan(charsFromStartOfCommunication, charsFromStartOfCommunication + flattenText(sent).length()); 
+      TextSpan sentTS = new TextSpan(charsFromStartOfCommunication, charsFromStartOfCommunication + flattenText(sent).length());
       boolean isValidSentTS = new ValidatableTextSpan(sentTS).isValid();
       if (!isValidSentTS)
         throw new AnnotationException("TextSpan was not valid: " + sentTS.toString());
       concSent.setTextSpan(sentTS);
 
       if (this.storeOffsetInRaw) {
-        TextSpan compTS = new TextSpan(firstToken.getCharOffBegin(), lastToken.getCharOffEnd()); 
+        TextSpan compTS = new TextSpan(firstToken.getCharOffBegin(), lastToken.getCharOffEnd());
         boolean isValidCompTS = new ValidatableTextSpan(compTS).isValid();
         if (!isValidCompTS)
           throw new AnnotationException("Computed TextSpan was not valid: " + compTS.toString());
@@ -523,7 +542,8 @@ public class AgigaConverter {
    * <ol>
    * <li>if all tokens within {@code em.tokens} are OTHER, or</li>
    * <li>if no NE theories exist, or</li>
-   * <li>if the anchor token is OTHER.</li>
+   * <li>if the anchor token is OTHER,</li>
+   * <li>if the mention is empty (so the token index list is the empty list).</li>
    * </ol>
    */
   private String getEntityMentionType(EntityMention em, Tokenization tokenization) {
@@ -531,7 +551,7 @@ public class AgigaConverter {
     TokenRefSequence trs = em.getTokens();
     int anchor = trs.getAnchorTokenIndex();
     String[][] neTags = getNETags(tokenization);
-    if (neTags == null) {
+    if (neTags == null || trs.getTokenIndexList().size() == 0) {
       return UNK;
     }
     if (neTags.length == 1 && anchor >= 0) {
@@ -580,11 +600,11 @@ public class AgigaConverter {
 
   public EntityMention convertMention(AgigaMention m, AgigaDocument doc, UUID corefSet, Tokenization tokenization) throws AnnotationException {
     String mstring = extractMentionString(m, doc);
-
-    EntityMention em = new EntityMention().setUuid(this.idF.getConcreteUUID()).setTokens(extractTokenRefSequence(m, tokenization.getUuid())).setText(mstring);
-    // String emType = getEntityMentionType(em, tokenization);
-    // em.setPhraseType("Name") // TODO warn users that this may not be accurate
-    // .setConfidence(1f).setText(mstring); // TODO merge this an method below
+    TokenRefSequence trs = extractTokenRefSequence(m, tokenization.getUuid());
+    EntityMention em = new EntityMention().setUuid(this.idF.getConcreteUUID()).setTokens(trs);
+    String emType = getEntityMentionType(em, tokenization);
+    em.setEntityType(emType).setPhraseType("Name") // TODO warn users that this may not be accurate
+        .setConfidence(1f).setText(mstring); // TODO merge this an method below
     return em;
   }
 
@@ -664,7 +684,7 @@ public class AgigaConverter {
       charsFromStartOfCommunication += flattenText(sentence).length() + 1; // +1 for newline at end of sentence
     }
 
-    // Retrieve the tokenizations. 
+    // Retrieve the tokenizations.
     Collection<Tokenization> tokColl = new SuperCommunication(comm).generateTokenizationIdToTokenizationMap().values();
     List<Tokenization> toks = new ArrayList<>(tokColl);
     List<EntityMention> mentionSet = new ArrayList<EntityMention>();
@@ -685,7 +705,7 @@ public class AgigaConverter {
       }
     }
     comm.addToEntityMentionSetList(emsb);
-    
+
     if (!esb.isSetEntityList()) {
       if (allowEmpties) {
         logger.warn("No entities found: creating empty entity list");
@@ -693,7 +713,7 @@ public class AgigaConverter {
       }
     }
     comm.addToEntitySetList(esb);
-    
+
     return comm;
   }
 
@@ -778,7 +798,6 @@ public class AgigaConverter {
       }
 
       logger.info("Finished. Wrote {} communications to {} in {} seconds.", c, outputDir.getPath(), (System.currentTimeMillis() - start) / 1000d);
-
     }
   }
 }
