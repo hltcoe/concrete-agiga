@@ -601,10 +601,11 @@ public class AgigaConverter {
   public EntityMention convertMention(AgigaMention m, AgigaDocument doc, UUID corefSet, Tokenization tokenization) throws AnnotationException {
     String mstring = extractMentionString(m, doc);
     TokenRefSequence trs = extractTokenRefSequence(m, tokenization.getUuid());
-    EntityMention em = new EntityMention().setUuid(this.idF.getConcreteUUID()).setTokens(trs);
-    String emType = getEntityMentionType(em, tokenization);
-    em.setEntityType(emType).setPhraseType("Name") // TODO warn users that this may not be accurate
-        .setConfidence(1f).setText(mstring); // TODO merge this an method below
+    EntityMention em = new EntityMention()
+      .setUuid(this.idF.getConcreteUUID())
+      .setTokens(trs);
+    // String emType = getEntityMentionType(em, tokenization);
+    em.setText(mstring); // TODO merge this an method below
     return em;
   }
 
