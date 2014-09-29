@@ -29,7 +29,7 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <concrete.version>3.6.1</concrete.version>
+    <concrete.version>3.6.2</concrete.version>
   </properties>
 
   <build>
