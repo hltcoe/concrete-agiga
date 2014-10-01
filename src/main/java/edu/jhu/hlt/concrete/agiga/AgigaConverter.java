@@ -422,14 +422,29 @@ public class AgigaConverter {
 
     String[] depTypes = new String[] { "basic-deps", "col-deps", "col-ccproc-deps" };
     for (String dt : depTypes) {
-      DependencyParse dp = convertDependencyParse(sent.getBasicDeps(), dt, tUuid);
-      if (!allowEmpties && !dp.isSetDependencyList())
+      List<AgigaTypedDependency> deps = getDepsForType(sent, dt);
+      DependencyParse dp = convertDependencyParse(deps, dt, tUuid);
+      if (!allowEmpties && !dp.isSetDependencyList()) {
         logger.warn("Not adding empty " + dt + " dependency parse for tokenization id " + tUuid);
-      else
+      } else {
         tb.addToDependencyParseList(dp);
-
+      }
     }
     return tb;
+  }
+
+  private List<AgigaTypedDependency> getDepsForType(AgigaSentence aSent, String which) {
+      logger.debug("retrieving " + which + " dependencies");
+      switch(which) {
+      case "basic-deps":
+          return aSent.getBasicDeps();
+      case "col-deps":
+          return aSent.getColDeps();
+      case "col-ccproc-deps":
+          return aSent.getColCcprocDeps();
+      default:
+          throw new RuntimeException("Unknown dependency type " + which);
+      }
   }
 
   public TaggedToken makeTaggedToken(String tag, int tokId) {
