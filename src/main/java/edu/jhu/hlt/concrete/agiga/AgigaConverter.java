@@ -433,7 +433,7 @@ public class AgigaConverter {
     return tb;
   }
 
-  private List<AgigaTypedDependency> getDepsForType(AgigaSentence aSent, String which) {
+  private List<AgigaTypedDependency> getDepsForType(AgigaSentence aSent, String which) throws AnnotationException {
       logger.debug("retrieving " + which + " dependencies");
       switch(which) {
       case "basic-deps":
@@ -443,7 +443,7 @@ public class AgigaConverter {
       case "col-ccproc-deps":
           return aSent.getColCcprocDeps();
       default:
-          throw new RuntimeException("Unknown dependency type " + which);
+          throw new AnnotationException("Unknown dependency type " + which);
       }
   }
 
