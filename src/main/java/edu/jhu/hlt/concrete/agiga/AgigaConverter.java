@@ -53,7 +53,7 @@ import edu.stanford.nlp.trees.Tree;
 
 public class AgigaConverter {
 
-  private String toolName;
+  private final String toolName;
   private String corpusName = "Annotated Gigaword";
   public static final long annotationTime = System.currentTimeMillis();
 
@@ -85,14 +85,7 @@ public class AgigaConverter {
    *          This will <em>not</em> allow empty required lists.
    */
   public AgigaConverter(boolean addTextSpans) {
-    this.addTextSpans = addTextSpans;
-    this.allowEmpties = false;
-    this.storeOffsetInRaw = true;
-    this.toolName = "Annotated Gigaword Pipeline";
-  }
-
-  public void setToolName(String t) {
-    this.toolName = t;
+    this(addTextSpans, false);
   }
 
   public String getToolName() {
@@ -110,6 +103,7 @@ public class AgigaConverter {
     this.addTextSpans = addTextSpans;
     this.allowEmpties = allowEmpties;
     this.storeOffsetInRaw = true;
+    this.toolName = "Annotated Gigaword Pipeline";
   }
 
   public boolean isAddingTextSpans() {
