@@ -53,15 +53,19 @@ import edu.stanford.nlp.trees.Tree;
 
 public class AgigaConverter {
 
-  public static final String toolName = "Annotated Gigaword Pipeline";
-  public static final String corpusName = "Annotated Gigaword";
+  private String toolName;
+  private String corpusName = "Annotated Gigaword";
   public static final long annotationTime = System.currentTimeMillis();
 
   private static final Logger logger = LoggerFactory.getLogger(AgigaConverter.class);
 
+  public static final String TOKENIZER_TOOL_NAME = "Stanford CoreNLP tokenizer http://nlp.stanford.edu/nlp/javadoc/javanlp/edu/stanford/nlp/process/PTBTokenizer.html";
   public static final String LEMMA_TOOL_NAME = "Stanford CoreNLP lemmatizer http://nlp.stanford.edu/nlp/javadoc/javanlp/edu/stanford/nlp/pipeline/MorphaAnnotator.html";
   public static final String POS_TOOL_NAME = "Stanford CoreNLP POS Tagger http://nlp.stanford.edu/nlp/javadoc/javanlp/edu/stanford/nlp/pipeline/POSTaggerAnnotator.html";
   public static final String NER_TOOL_NAME = "Stanford CoreNLP NER http://nlp.stanford.edu/nlp/javadoc/javanlp/edu/stanford/nlp/ie/NERClassifierCombiner.html";
+  public static final String CPARSER_TOOL_NAME = "Stanford CoreNLP Constituency Parser http://nlp.stanford.edu/nlp/javadoc/javanlp/edu/stanford/nlp/parser/lexparser/LexicalizedParser.html";
+  public static final String DPARSER_TOOL_NAME = "Stanford CoreNLP Dependency Parser http://nlp.stanford.edu/software/dependencies_manual.pdf";
+  public static final String COREF_TOOL_NAME = "Stanford CoreNLP dcoref http://nlp.stanford.edu/nlp/javadoc/javanlp/index.html?edu/stanford/nlp/pipeline/DeterministicCorefAnnotator.html";
 
   private final ConcreteUUIDFactory idF = new ConcreteUUIDFactory();
 
@@ -84,6 +88,15 @@ public class AgigaConverter {
     this.addTextSpans = addTextSpans;
     this.allowEmpties = false;
     this.storeOffsetInRaw = true;
+    this.toolName = "Annotated Gigaword Pipeline";
+  }
+
+  public void setToolName(String t) {
+    this.toolName = t;
+  }
+
+  public String getToolName() {
+      return this.toolName;
   }
 
   /**
@@ -147,7 +160,7 @@ public class AgigaConverter {
     p.setUuid(this.idF.getConcreteUUID());
     TheoryDependencies deps = new TheoryDependencies();
     deps.addToTokenizationTheoryList(tokenizationUUID);
-    AnnotationMetadata md = this.metadata(" http://www.aclweb.org/anthology-new/D/D10/D10-1002.pdf").setDependencies(deps);
+    AnnotationMetadata md = this.metadata(CPARSER_TOOL_NAME).setDependencies(deps);
     p.setMetadata(md);
     s2cHelper(root, idCounter, left, right, p, tokenizationUUID);
     if (!p.isSetConstituentList()) {
@@ -267,7 +280,7 @@ public class AgigaConverter {
     db.setUuid(this.idF.getConcreteUUID());
     TheoryDependencies td = new TheoryDependencies();
     td.addToTokenizationTheoryList(tokenizationUUID);
-    AnnotationMetadata md = this.metadata(" " + name + " http://nlp.stanford.edu/software/dependencies_manual.pdf").setDependencies(td);
+    AnnotationMetadata md = this.metadata(DPARSER_TOOL_NAME + " " + name ).setDependencies(td);
     db.setMetadata(md);
 
     if (!deps.isEmpty()) {
@@ -358,7 +371,7 @@ public class AgigaConverter {
 
     tb.setUuid(tUuid).setKind(TokenizationKind.TOKEN_LIST);
 
-    AnnotationMetadata md = this.metadata("http://nlp.stanford.edu/software/tokensregex.shtml");
+    AnnotationMetadata md = this.metadata(TOKENIZER_TOOL_NAME);
     tb.setMetadata(md);
 
     int tokId = 0;
@@ -705,9 +718,9 @@ public class AgigaConverter {
     List<Tokenization> toks = new ArrayList<>(tokColl);
     List<EntityMention> mentionSet = new ArrayList<EntityMention>();
     EntityMentionSet emsb = new EntityMentionSet().setUuid(this.idF.getConcreteUUID())
-        .setMetadata(metadata("http://nlp.stanford.edu/pubs/conllst2011-coref.pdf")).setMentionList(mentionSet);
+        .setMetadata(metadata(COREF_TOOL_NAME)).setMentionList(mentionSet);
     List<Entity> entityList = new ArrayList<Entity>();
-    EntitySet esb = new EntitySet().setUuid(this.idF.getConcreteUUID()).setMetadata(metadata("http://nlp.stanford.edu/pubs/conllst2011-coref.pdf"))
+    EntitySet esb = new EntitySet().setUuid(this.idF.getConcreteUUID()).setMetadata(metadata(COREF_TOOL_NAME))
         .setEntityList(entityList);
     for (AgigaCoref coref : doc.getCorefs()) {
       Entity e = convertCoref(emsb, coref, doc, toks);
@@ -739,7 +752,7 @@ public class AgigaConverter {
     comm.setText(flattenText(doc));
     comm.setType("News");
     comm.setUuid(this.idF.getConcreteUUID());
-    AnnotationMetadata md = new AnnotationMetadata().setTool("Concrete-agiga 3.3.6-SNAPSHOT").setTimestamp(System.currentTimeMillis() / 1000);
+    AnnotationMetadata md = new AnnotationMetadata().setTool(this.toolName).setTimestamp(System.currentTimeMillis() / 1000);
     comm.setMetadata(md);
     return comm;
   }
