@@ -104,13 +104,8 @@ public class AgigaConverter {
     return addTextSpans;
   }
 
-  public AnnotationMetadata metadata(String addToToolName) {
-    String fullToolName = toolName;
-    if (addToToolName != null)
-      fullToolName += ": " + addToToolName;
-
-    AnnotationMetadata md = new AnnotationMetadata().setTool(fullToolName).setTimestamp(annotationTime);
-    return md;
+  public AnnotationMetadata metadata(String toolName) {
+    return new AnnotationMetadata().setTool(toolName).setTimestamp(annotationTime);
   }
 
   public String flattenText(AgigaDocument doc) {
