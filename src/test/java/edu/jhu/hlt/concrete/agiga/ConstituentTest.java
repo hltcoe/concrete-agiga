@@ -6,6 +6,7 @@ package edu.jhu.hlt.concrete.agiga;
 import static org.junit.Assert.assertTrue;
 
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -61,7 +62,7 @@ public class ConstituentTest {
   }
 
   @Test
-  public void testConstituentIDs() throws ConcreteException, AnnotationException {
+  public void testConstituentIDs() throws ConcreteException, AnnotationException, IOException {
     AgigaPrefs ap = new AgigaPrefs();
     ap.setAll(true);
     StreamingDocumentReader docReader = new StreamingDocumentReader(testDataPath.toString(), ap);
@@ -81,7 +82,7 @@ public class ConstituentTest {
   }
 
   @Test
-  public void testNumEntities() throws ConcreteException, AnnotationException {
+  public void testNumEntities() throws ConcreteException, AnnotationException, IOException {
     AgigaPrefs ap = new AgigaPrefs();
     ap.setAll(true);
     StreamingDocumentReader docReader = new StreamingDocumentReader(testDataPath.toString(), ap);
@@ -142,7 +143,7 @@ public class ConstituentTest {
 //  }
 
   @Test
-  public void normal() throws ConcreteException, AnnotationException {
+  public void normal() throws ConcreteException, AnnotationException, IOException {
     AgigaPrefs ap = new AgigaPrefs();
     ap.setAll(true);
     StreamingDocumentReader docReader = new StreamingDocumentReader(testDataPath.toString(), ap);

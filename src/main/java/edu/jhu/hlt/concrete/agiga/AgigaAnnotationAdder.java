@@ -1,5 +1,6 @@
 package edu.jhu.hlt.concrete.agiga;
 
+import java.io.IOException;
 import java.util.List;
 
 import concrete.tools.AnnotationException;
@@ -23,7 +24,7 @@ public class AgigaAnnotationAdder {
 
     private static final ConcreteUUIDFactory idF = new ConcreteUUIDFactory();
 
-    public static void addAgigaAnnosToSection(AgigaDocument aDoc, Section cSection) {
+    public static void addAgigaAnnosToSection(AgigaDocument aDoc, Section cSection) throws IOException {
         List<Sentence> cSents = cSection.getSentenceList();
         List<AgigaSentence> aSents = aDoc.getSents();
         if (cSents.size() != aSents.size()) {
@@ -38,16 +39,18 @@ public class AgigaAnnotationAdder {
     
     /**
      * Add the annotations found in an {@link AgigaSentence} to an existing Concrete {@link Sentence}.
+     * @throws IOException 
      */
-    public static void addAgigaAnnosToConcreteSent(AgigaSentence aSent, Sentence cSent) {
+    public static void addAgigaAnnosToConcreteSent(AgigaSentence aSent, Sentence cSent) throws IOException {
         Tokenization cTokenization = cSent.getTokenization();
         addAgigaAnnosToConcreteTokenization(aSent, cTokenization);
     }
     
     /**
      * Add the annotations found in an {@link AgigaSentence} to an existing Concrete {@link Tokenization}.
+     * @throws IOException 
      */
-    public static void addAgigaAnnosToConcreteTokenization(AgigaSentence aSent, Tokenization cTokenization) {
+    public static void addAgigaAnnosToConcreteTokenization(AgigaSentence aSent, Tokenization cTokenization) throws IOException {
         checkMatchingTokenizations(aSent, cTokenization);
         AgigaConverter converter = new AgigaConverter(false);
         UUID tUuid = cTokenization.getUuid();

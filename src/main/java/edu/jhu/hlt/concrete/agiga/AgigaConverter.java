@@ -2,6 +2,7 @@ package edu.jhu.hlt.concrete.agiga;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -13,6 +14,7 @@ import org.apache.thrift.protocol.TBinaryProtocol;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import concrete.agiga.util.ConcreteAgigaProperties;
 import concrete.tools.AnnotationException;
 import edu.jhu.agiga.AgigaCoref;
 import edu.jhu.agiga.AgigaDocument;
@@ -52,30 +54,19 @@ import edu.stanford.nlp.trees.SemanticHeadFinder;
 import edu.stanford.nlp.trees.Tree;
 
 public class AgigaConverter {
-
-  private final String toolName;
-  private String corpusName = "Annotated Gigaword";
-  public static final long annotationTime = System.currentTimeMillis();
-
   private static final Logger logger = LoggerFactory.getLogger(AgigaConverter.class);
 
-  public static final String TOKENIZER_TOOL_NAME = "Stanford CoreNLP tokenizer http://nlp.stanford.edu/nlp/javadoc/javanlp/edu/stanford/nlp/process/PTBTokenizer.html";
-  public static final String LEMMA_TOOL_NAME = "Stanford CoreNLP lemmatizer http://nlp.stanford.edu/nlp/javadoc/javanlp/edu/stanford/nlp/pipeline/MorphaAnnotator.html";
-  public static final String POS_TOOL_NAME = "Stanford CoreNLP POS Tagger http://nlp.stanford.edu/nlp/javadoc/javanlp/edu/stanford/nlp/pipeline/POSTaggerAnnotator.html";
-  public static final String NER_TOOL_NAME = "Stanford CoreNLP NER http://nlp.stanford.edu/nlp/javadoc/javanlp/edu/stanford/nlp/ie/NERClassifierCombiner.html";
-  public static final String CPARSER_TOOL_NAME = "Stanford CoreNLP Constituency Parser http://nlp.stanford.edu/nlp/javadoc/javanlp/edu/stanford/nlp/parser/lexparser/LexicalizedParser.html";
-  public static final String DPARSER_TOOL_NAME = "Stanford CoreNLP Dependency Parser http://nlp.stanford.edu/software/dependencies_manual.pdf";
-  public static final String COREF_TOOL_NAME = "Stanford CoreNLP dcoref http://nlp.stanford.edu/nlp/javadoc/javanlp/index.html?edu/stanford/nlp/pipeline/DeterministicCorefAnnotator.html";
+  public static final long annotationTime = System.currentTimeMillis();
 
   private final ConcreteUUIDFactory idF = new ConcreteUUIDFactory();
+  private final String toolName;
+  private final ConcreteAgigaProperties props;
 
   /**
    * Whether or not to allow empty required lists.
    */
   private boolean allowEmpties;
-
   private boolean addTextSpans;
-
   private boolean storeOffsetInRaw;
 
   /**
@@ -83,8 +74,9 @@ public class AgigaConverter {
    *          Because textSpans are merely "provenance" spans, and serve merely to indicate the original span that gave rise to a particular annotation span, we
    *          don't always want to add text spans. <br/>
    *          This will <em>not</em> allow empty required lists.
+   * @throws IOException
    */
-  public AgigaConverter(boolean addTextSpans) {
+  public AgigaConverter(boolean addTextSpans) throws IOException {
     this(addTextSpans, false);
   }
 
@@ -98,12 +90,14 @@ public class AgigaConverter {
    *          don't always want to add text spans.
    * @param allowEmpties
    *          Whether to allow empty required lists.
+   * @throws IOException
    */
-  public AgigaConverter(boolean addTextSpans, boolean allowEmpties) {
+  public AgigaConverter(boolean addTextSpans, boolean allowEmpties) throws IOException {
     this.addTextSpans = addTextSpans;
     this.allowEmpties = allowEmpties;
     this.storeOffsetInRaw = true;
-    this.toolName = "Annotated Gigaword Pipeline";
+    this.props = new ConcreteAgigaProperties();
+    this.toolName = this.props.getToolName();
   }
 
   public boolean isAddingTextSpans() {
@@ -154,7 +148,7 @@ public class AgigaConverter {
     p.setUuid(this.idF.getConcreteUUID());
     TheoryDependencies deps = new TheoryDependencies();
     deps.addToTokenizationTheoryList(tokenizationUUID);
-    AnnotationMetadata md = this.metadata(CPARSER_TOOL_NAME).setDependencies(deps);
+    AnnotationMetadata md = this.metadata(this.props.getCParseToolName()).setDependencies(deps);
     p.setMetadata(md);
     s2cHelper(root, idCounter, left, right, p, tokenizationUUID);
     if (!p.isSetConstituentList()) {
@@ -278,7 +272,7 @@ public class AgigaConverter {
     db.setUuid(this.idF.getConcreteUUID());
     TheoryDependencies td = new TheoryDependencies();
     td.addToTokenizationTheoryList(tokenizationUUID);
-    AnnotationMetadata md = this.metadata(DPARSER_TOOL_NAME + " " + name).setDependencies(td);
+    AnnotationMetadata md = this.metadata(this.props.getDParseToolName()).setDependencies(td);
     db.setMetadata(md);
 
     if (!deps.isEmpty()) {
@@ -312,7 +306,11 @@ public class AgigaConverter {
    * @return
    */
   public AnnotationMetadata getLemmaMetadata(UUID tUuid) {
-    return this.createTokenizationDependentMetadata(tUuid, LEMMA_TOOL_NAME);
+    return this.createTokenizationDependentMetadata(tUuid, this.props.getLemmatizerToolName());
+  }
+
+  public AnnotationMetadata getCorefMetadata() {
+    return this.metadata(this.props.getCorefToolName());
   }
 
   /**
@@ -322,7 +320,7 @@ public class AgigaConverter {
    * @return
    */
   public AnnotationMetadata getPOSMetadata(UUID tUuid) {
-    return this.createTokenizationDependentMetadata(tUuid, POS_TOOL_NAME);
+    return this.createTokenizationDependentMetadata(tUuid, this.props.getPOSToolName());
   }
 
   /**
@@ -332,7 +330,7 @@ public class AgigaConverter {
    * @return
    */
   public AnnotationMetadata getNERMetadata(UUID tUuid) {
-    return this.createTokenizationDependentMetadata(tUuid, NER_TOOL_NAME);
+    return this.createTokenizationDependentMetadata(tUuid, this.props.getNERToolName());
   }
 
   private Tokenization addTokenTaggings(AgigaSentence sent, Tokenization tkz) throws AnnotationException {
@@ -347,26 +345,26 @@ public class AgigaConverter {
     TokenTagging lemma = new TokenTagging().setUuid(this.idF.getConcreteUUID()).setMetadata(lemmaMd);
     TokenTagging pos = new TokenTagging().setUuid(this.idF.getConcreteUUID()).setMetadata(posMd);
     TokenTagging ner = new TokenTagging().setUuid(this.idF.getConcreteUUID()).setMetadata(nerMd);
-    
+
     lemma.setTaggingType("LEMMA");
     pos.setTaggingType("POS");
     ner.setTaggingType("NER");
-    
+
     List<AgigaToken> tokList = sent.getTokens();
     int nTokens = tokList.size();
     for (int i = 0; i < nTokens; i++) {
       int curTokId = i + 1;
       AgigaToken tok = tokList.get(i);
-      
+
       lemma.addToTaggedTokenList(makeTaggedToken(tok.getLemma(), curTokId));
       pos.addToTaggedTokenList(makeTaggedToken(tok.getPosTag(), curTokId));
-      ner.addToTaggedTokenList(makeTaggedToken(tok.getNerTag(), curTokId));      
+      ner.addToTaggedTokenList(makeTaggedToken(tok.getNerTag(), curTokId));
     }
-    
+
     tkz.addToTokenTaggingList(lemma);
     tkz.addToTokenTaggingList(pos);
     tkz.addToTokenTaggingList(ner);
-    
+
     Parse parse = stanford2concrete(sent.getStanfordContituencyTree(), tUuid);
     if (!allowEmpties && !parse.isSetConstituentList())
       logger.warn("Not adding empty constituency parse for tokenization id " + tUuid);
@@ -382,7 +380,7 @@ public class AgigaConverter {
       else
         tkz.addToDependencyParseList(dp);
     }
-    
+
     return tkz;
   }
 
@@ -411,7 +409,7 @@ public class AgigaConverter {
 
     tb.setUuid(tUuid).setKind(TokenizationKind.TOKEN_LIST);
 
-    AnnotationMetadata md = this.metadata(TOKENIZER_TOOL_NAME);
+    AnnotationMetadata md = this.metadata(this.props.getTokenizerToolName());
     tb.setMetadata(md);
 
     int tokId = 0;
@@ -738,11 +736,11 @@ public class AgigaConverter {
     Collection<Tokenization> tokColl = new SuperCommunication(comm).generateTokenizationIdToTokenizationMap().values();
     List<Tokenization> toks = new ArrayList<>(tokColl);
     List<EntityMention> mentionSet = new ArrayList<EntityMention>();
-    EntityMentionSet emsb = new EntityMentionSet().setUuid(this.idF.getConcreteUUID())
-        .setMetadata(metadata(COREF_TOOL_NAME)).setMentionList(mentionSet);
+    AnnotationMetadata md = this.getCorefMetadata();
+    EntityMentionSet emsb = new EntityMentionSet().setUuid(this.idF.getConcreteUUID()).setMetadata(md)
+        .setMentionList(mentionSet);
     List<Entity> entityList = new ArrayList<Entity>();
-    EntitySet esb = new EntitySet().setUuid(this.idF.getConcreteUUID()).setMetadata(metadata(COREF_TOOL_NAME))
-        .setEntityList(entityList);
+    EntitySet esb = new EntitySet().setUuid(this.idF.getConcreteUUID()).setMetadata(md).setEntityList(entityList);
     for (AgigaCoref coref : doc.getCorefs()) {
       Entity e = convertCoref(emsb, coref, doc, toks);
       esb.addToEntityList(e);
