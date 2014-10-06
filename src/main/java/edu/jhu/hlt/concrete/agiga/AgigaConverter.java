@@ -89,7 +89,7 @@ public class AgigaConverter {
   }
 
   public String getToolName() {
-      return this.toolName;
+    return this.toolName;
   }
 
   /**
@@ -222,14 +222,14 @@ public class AgigaConverter {
   public TokenRefSequence extractTokenRefSequence(AgigaMention m, UUID uuid) throws AnnotationException {
     int start = m.getStartTokenIdx();
     int end = m.getEndTokenIdx();
-    if (end - start < 0) 
+    if (end - start < 0)
       throw new AnnotationException("Calling extractTokenRefSequence on mention " + m + " with head = " + m.getHeadTokenIdx() + ", UUID = " + uuid);
     else if (end == start) {
       TokenRefSequence tb = new TokenRefSequence();
       tb.setTokenizationId(uuid).setTokenIndexList(new ArrayList<Integer>());
       if (m.getHeadTokenIdx() >= 0)
         tb.setAnchorTokenIndex(m.getHeadTokenIdx());
-      
+
       logger.warn("Creating an EMPTY mention for mention " + m + " with UUID = " + uuid);
       return tb;
     }
@@ -274,7 +274,7 @@ public class AgigaConverter {
     db.setUuid(this.idF.getConcreteUUID());
     TheoryDependencies td = new TheoryDependencies();
     td.addToTokenizationTheoryList(tokenizationUUID);
-    AnnotationMetadata md = this.metadata(DPARSER_TOOL_NAME + " " + name ).setDependencies(td);
+    AnnotationMetadata md = this.metadata(DPARSER_TOOL_NAME + " " + name).setDependencies(td);
     db.setMetadata(md);
 
     if (!deps.isEmpty()) {
@@ -441,17 +441,17 @@ public class AgigaConverter {
   }
 
   private List<AgigaTypedDependency> getDepsForType(AgigaSentence aSent, String which) throws AnnotationException {
-      logger.debug("retrieving " + which + " dependencies");
-      switch(which) {
-      case "basic-deps":
-          return aSent.getBasicDeps();
-      case "col-deps":
-          return aSent.getColDeps();
-      case "col-ccproc-deps":
-          return aSent.getColCcprocDeps();
-      default:
-          throw new AnnotationException("Unknown dependency type " + which);
-      }
+    logger.debug("retrieving " + which + " dependencies");
+    switch (which) {
+    case "basic-deps":
+      return aSent.getBasicDeps();
+    case "col-deps":
+      return aSent.getColDeps();
+    case "col-ccproc-deps":
+      return aSent.getColCcprocDeps();
+    default:
+      throw new AnnotationException("Unknown dependency type " + which);
+    }
   }
 
   public TaggedToken makeTaggedToken(String tag, int tokId) {
@@ -623,9 +623,7 @@ public class AgigaConverter {
   public EntityMention convertMention(AgigaMention m, AgigaDocument doc, UUID corefSet, Tokenization tokenization) throws AnnotationException {
     String mstring = extractMentionString(m, doc);
     TokenRefSequence trs = extractTokenRefSequence(m, tokenization.getUuid());
-    EntityMention em = new EntityMention()
-      .setUuid(this.idF.getConcreteUUID())
-      .setTokens(trs);
+    EntityMention em = new EntityMention().setUuid(this.idF.getConcreteUUID()).setTokens(trs);
     // String emType = getEntityMentionType(em, tokenization);
     em.setText(mstring); // TODO merge this an method below
     return em;
@@ -711,11 +709,9 @@ public class AgigaConverter {
     Collection<Tokenization> tokColl = new SuperCommunication(comm).generateTokenizationIdToTokenizationMap().values();
     List<Tokenization> toks = new ArrayList<>(tokColl);
     List<EntityMention> mentionSet = new ArrayList<EntityMention>();
-    EntityMentionSet emsb = new EntityMentionSet().setUuid(this.idF.getConcreteUUID())
-        .setMetadata(metadata(COREF_TOOL_NAME)).setMentionList(mentionSet);
+    EntityMentionSet emsb = new EntityMentionSet().setUuid(this.idF.getConcreteUUID()).setMetadata(metadata(COREF_TOOL_NAME)).setMentionList(mentionSet);
     List<Entity> entityList = new ArrayList<Entity>();
-    EntitySet esb = new EntitySet().setUuid(this.idF.getConcreteUUID()).setMetadata(metadata(COREF_TOOL_NAME))
-        .setEntityList(entityList);
+    EntitySet esb = new EntitySet().setUuid(this.idF.getConcreteUUID()).setMetadata(metadata(COREF_TOOL_NAME)).setEntityList(entityList);
     for (AgigaCoref coref : doc.getCorefs()) {
       Entity e = convertCoref(emsb, coref, doc, toks);
       esb.addToEntityList(e);
