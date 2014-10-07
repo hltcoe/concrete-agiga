@@ -360,7 +360,8 @@ public class AgigaConverter {
     tkz.addToTokenTaggingList(pos);
     tkz.addToTokenTaggingList(ner);
 
-    Parse parse = stanford2concrete(sent.getStanfordContituencyTree(), tUuid);
+    Tree tree = sent.getStanfordContituencyTree();
+    Parse parse = stanford2concrete(tree, tUuid);
     if (!allowEmpties && !parse.isSetConstituentList())
       logger.warn("Not adding empty constituency parse for tokenization id " + tUuid);
     else
@@ -488,7 +489,7 @@ public class AgigaConverter {
     if (sent != null && sent.getTokens() != null && sent.getTokens().isEmpty())
       throw new AnnotationException("AgigaSentence " + sent + " does not have any tokens to process");
 
-    Tokenization tokenization = convertTokenization(sent, charsFromStartOfCommunication, true);
+    Tokenization tokenization = convertTokenization(sent, charsFromStartOfCommunication, preserveTokenTaggings);
     Sentence concSent = new Sentence().setUuid(this.idF.getConcreteUUID());
     if (addTextSpans) {
       AgigaToken firstToken = sent.getTokens().get(0);
