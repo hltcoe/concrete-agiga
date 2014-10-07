@@ -260,14 +260,16 @@ public class AgigaConverter {
    * name is the type of dependencies, e.g. "col-deps" or "col-ccproc-deps"
    * 
    * @param tokenizationUUID
-   *          TODO
+   * @param name the name or type of the dependency parse, e.g. "basic" or "collapsed"
+   *        this MUST be included in metadata for a DepenencyParse.
    */
   public DependencyParse convertDependencyParse(List<AgigaTypedDependency> deps, String name, UUID tokenizationUUID) {
     DependencyParse db = new DependencyParse();
     db.setUuid(this.idF.getConcreteUUID());
     TheoryDependencies td = new TheoryDependencies();
     td.addToTokenizationTheoryList(tokenizationUUID);
-    AnnotationMetadata md = this.metadata(this.props.getDParseToolName()).setDependencies(td);
+    String toolName = name + " " + this.props.getDParseToolName();
+    AnnotationMetadata md = this.metadata(toolName).setDependencies(td);
     db.setMetadata(md);
 
     if (!deps.isEmpty()) {
@@ -280,8 +282,9 @@ public class AgigaConverter {
 
         db.addToDependencyList(depB);
       }
-    } else
+    } else {
       db.setDependencyList(new ArrayList<Dependency>());
+    }
 
     return db;
   }
