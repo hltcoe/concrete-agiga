@@ -351,7 +351,7 @@ public class AgigaConverter {
     List<AgigaToken> tokList = sent.getTokens();
     int nTokens = tokList.size();
     for (int i = 0; i < nTokens; i++) {
-      int curTokId = i + 1;
+      int curTokId = i;
       AgigaToken tok = tokList.get(i);
 
       lemma.addToTaggedTokenList(makeTaggedToken(tok.getLemma(), curTokId));
