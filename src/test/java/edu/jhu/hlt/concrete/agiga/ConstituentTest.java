@@ -40,6 +40,8 @@ public class ConstituentTest {
   Path testDataPath;
   InputStream testDataIS;
 
+  ConcreteAgigaTestingUtils catu = new ConcreteAgigaTestingUtils();
+
   /**
    * @throws java.lang.Exception
    */
@@ -63,12 +65,7 @@ public class ConstituentTest {
 
   @Test
   public void testConstituentIDs() throws ConcreteException, AnnotationException, IOException {
-    AgigaPrefs ap = new AgigaPrefs();
-    ap.setAll(true);
-    StreamingDocumentReader docReader = new StreamingDocumentReader(testDataPath.toString(), ap);
-    assertTrue("Cannot read a document", docReader.hasNext());
-    AgigaDocument firstDoc = docReader.next();
-    Communication c = new AgigaConverter(true).convertDoc(firstDoc);
+    Communication c = catu.getCommunication(testDataPath.toString());
     SuperCommunication sc = new SuperCommunication(c);
     Tokenization t = sc.firstTokenization();
     Parse p = t.getParseList().get(0);
@@ -83,12 +80,7 @@ public class ConstituentTest {
 
   @Test
   public void testNumEntities() throws ConcreteException, AnnotationException, IOException {
-    AgigaPrefs ap = new AgigaPrefs();
-    ap.setAll(true);
-    StreamingDocumentReader docReader = new StreamingDocumentReader(testDataPath.toString(), ap);
-    assertTrue("Cannot read a document", docReader.hasNext());
-    AgigaDocument firstDoc = docReader.next();
-    Communication c = new AgigaConverter(true).convertDoc(firstDoc);
+    Communication c = catu.getCommunication(testDataPath.toString());
     // SuperCommunication sc = new SuperCommunication(c);
     assertTrue("expected an entity set to be set", c.isSetEntitySetList());
     assertTrue("expected only one entity set", c.getEntitySetList().size() == 1);
@@ -144,12 +136,7 @@ public class ConstituentTest {
 
   @Test
   public void normal() throws ConcreteException, AnnotationException, IOException {
-    AgigaPrefs ap = new AgigaPrefs();
-    ap.setAll(true);
-    StreamingDocumentReader docReader = new StreamingDocumentReader(testDataPath.toString(), ap);
-    assertTrue(docReader.hasNext());
-    AgigaDocument firstDoc = docReader.next();
-    Communication c = new AgigaConverter(true).convertDoc(firstDoc);
+    Communication c = catu.getCommunication(testDataPath.toString());
     new Serialization().toBytes(c);
   }
 }
