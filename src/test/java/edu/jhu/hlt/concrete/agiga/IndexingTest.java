@@ -25,7 +25,8 @@ import edu.jhu.agiga.AgigaDocument;
 import edu.jhu.agiga.AgigaPrefs;
 import edu.jhu.agiga.StreamingDocumentReader;
 import edu.jhu.hlt.concrete.Communication;
-import edu.jhu.hlt.concrete.Constituent;
+import edu.jhu.hlt.concrete.Dependency;
+import edu.jhu.hlt.concrete.DependencyParse;
 import edu.jhu.hlt.concrete.EntityMention;
 import edu.jhu.hlt.concrete.EntityMentionSet;
 import edu.jhu.hlt.concrete.EntitySet;
@@ -104,6 +105,29 @@ public class IndexingTest {
                        " its " + i + "th token index set to " + token.getTokenIndex(),
                        i, token.getTokenIndex());
           i++;
+        }
+      }
+    }
+  }
+
+  @Test
+  public void dependencyIndexTest() throws ConcreteException, AnnotationException, IOException {
+    Communication c = catu.getCommunication(strPath);
+    for(Section section : c.getSectionList()) {
+      if(!section.isSetSentenceList()) continue;
+      for(Sentence sentence : section.getSentenceList()) {
+        if(!sentence.isSetTokenization()) continue;
+        Tokenization tokenization = sentence.getTokenization();
+        assertTrue("tokenization " + tokenization.getUuid() + " is not a List (is " + tokenization.getKind() + ")",
+                   tokenization.getKind().equals(TokenizationKind.TOKEN_LIST));
+        int numTokens = tokenization.getTokenList().getTokenList().size();
+        for(DependencyParse depParse : tokenization.getDependencyParseList()) {
+          for(Dependency dep : depParse.getDependencyList()) {
+            assertTrue(dep.isSetEdgeType());
+            assertTrue(dep.getEdgeType().toLowerCase().equals("root") ||
+                       (dep.getGov() >= 0 && dep.getGov() < numTokens));
+            assertTrue(dep.getDep() >= 0 && dep.getDep() < numTokens);
+          }
         }
       }
     }
