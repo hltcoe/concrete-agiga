@@ -3,46 +3,36 @@
  */
 package edu.jhu.hlt.concrete.agiga;
 
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import concrete.tools.AnnotationException;
-import edu.jhu.agiga.AgigaDocument;
-import edu.jhu.agiga.AgigaPrefs;
-import edu.jhu.agiga.StreamingDocumentReader;
 import edu.jhu.hlt.concrete.Communication;
 import edu.jhu.hlt.concrete.Dependency;
 import edu.jhu.hlt.concrete.DependencyParse;
 import edu.jhu.hlt.concrete.EntityMention;
 import edu.jhu.hlt.concrete.EntityMentionSet;
-import edu.jhu.hlt.concrete.EntitySet;
-import edu.jhu.hlt.concrete.Parse;
 import edu.jhu.hlt.concrete.Section;
 import edu.jhu.hlt.concrete.Sentence;
 import edu.jhu.hlt.concrete.TaggedToken;
 import edu.jhu.hlt.concrete.Token;
-import edu.jhu.hlt.concrete.Tokenization;
-import edu.jhu.hlt.concrete.TokenizationKind;
 import edu.jhu.hlt.concrete.TokenRefSequence;
 import edu.jhu.hlt.concrete.TokenTagging;
+import edu.jhu.hlt.concrete.Tokenization;
+import edu.jhu.hlt.concrete.TokenizationKind;
 import edu.jhu.hlt.concrete.UUID;
 import edu.jhu.hlt.concrete.communications.SuperCommunication;
 import edu.jhu.hlt.concrete.util.ConcreteException;
-import edu.jhu.hlt.concrete.util.Serialization;
 
 public class IndexingTest {
 
@@ -136,7 +126,7 @@ public class IndexingTest {
   @Test
   public void entityMentionTokenRefSequenceIndexTest() throws ConcreteException, AnnotationException, IOException {
     Communication c = catu.getCommunication(strPath);
-    Map<UUID, Tokenization> tokenizationMapping = getTokenizationMapping(c);
+    Map<UUID, Tokenization> tokenizationMapping = new SuperCommunication(c).generateTokenizationIdToTokenizationMap();
     if(c.isSetEntityMentionSetList()) {
       for(EntityMentionSet ems : c.getEntityMentionSetList()) {
         for(EntityMention em : ems.getMentionList()) {
@@ -148,19 +138,6 @@ public class IndexingTest {
         }
       }
     }
-  }
-
-  private Map<UUID, Tokenization> getTokenizationMapping(Communication c) {
-    Map<UUID, Tokenization> tokenizationMapping = new HashMap<UUID, Tokenization>();
-    for(Section section : c.getSectionList()) {
-      if(!section.isSetSentenceList()) continue;
-      for(Sentence sentence : section.getSentenceList()) {
-        if(!sentence.isSetTokenization()) continue;
-        Tokenization tokenization = sentence.getTokenization();
-        tokenizationMapping.put(tokenization.getUuid(), tokenization);
-      }
-    }
-    return tokenizationMapping;
   }
 
   private void verifyTokenRefSequence(TokenRefSequence trs, Tokenization tokenization) {
