@@ -3,7 +3,7 @@
 
   <groupId>edu.jhu.hlt</groupId>
   <artifactId>concrete-agiga</artifactId>
-  <version>3.7.3</version>
+  <version>3.7.4</version>
 
   <name>Concrete - Agiga Converter</name>
 
@@ -134,7 +134,7 @@
     <dependency>
       <groupId>edu.jhu.agiga</groupId>
       <artifactId>agiga</artifactId>
-      <version>1.2</version>
+      <version>1.4</version>
     </dependency>
     <dependency>
       <groupId>edu.jhu.hlt</groupId>
