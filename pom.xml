@@ -3,7 +3,7 @@
 
   <groupId>edu.jhu.hlt</groupId>
   <artifactId>concrete-agiga</artifactId>
-  <version>3.7.4</version>
+  <version>3.8.0</version>
 
   <name>Concrete - Agiga Converter</name>
 
@@ -29,7 +29,7 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <concrete.version>3.7.4</concrete.version>
+    <concrete.version>3.8.0</concrete.version>
   </properties>
 
   <build>
