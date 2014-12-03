@@ -14,6 +14,7 @@ import edu.jhu.hlt.concrete.TokenTagging;
 import edu.jhu.hlt.concrete.Tokenization;
 import edu.jhu.hlt.concrete.UUID;
 import edu.jhu.hlt.concrete.util.ConcreteUUIDFactory;
+import edu.stanford.nlp.trees.Tree;
 
 /**
  * Adds annotations from Agiga objects to Concrete objects using the AgigaConverter where possible.
@@ -36,7 +37,7 @@ public class AgigaAnnotationAdder {
             AgigaAnnotationAdder.addAgigaAnnosToConcreteSent(aSent, cSent);
         }
     }
-    
+
     /**
      * Add the annotations found in an {@link AgigaSentence} to an existing Concrete {@link Sentence}.
      * @throws IOException 
@@ -45,7 +46,7 @@ public class AgigaAnnotationAdder {
         Tokenization cTokenization = cSent.getTokenization();
         addAgigaAnnosToConcreteTokenization(aSent, cTokenization);
     }
-    
+
     /**
      * Add the annotations found in an {@link AgigaSentence} to an existing Concrete {@link Tokenization}.
      * @throws IOException 
@@ -65,8 +66,9 @@ public class AgigaAnnotationAdder {
         TokenTagging ner = new TokenTagging();
         ner.setUuid(idF.getConcreteUUID());
         ner.setMetadata(converter.getNERMetadata(tUuid));
-                
-        for (int tokId = 0; tokId < aSent.getTokens().size(); tokId++) {
+
+        int n = aSent.getTokens().size();
+        for (int tokId = 0; tokId < n; tokId++) {
           AgigaToken tok = aSent.getTokens().get(tokId);
 
           // token annotations
@@ -74,16 +76,25 @@ public class AgigaAnnotationAdder {
           pos.addToTaggedTokenList(converter.makeTaggedToken(tok.getPosTag(), tokId));
           ner.addToTaggedTokenList(converter.makeTaggedToken(tok.getNerTag(), tokId));
         }
-        
-        
-        
+
         cTokenization.addToTokenTaggingList(lemma);
         cTokenization.addToTokenTaggingList(pos);
         cTokenization.addToTokenTaggingList(ner);
-        
+
         UUID tzUUID = cTokenization.getUuid();
         try {
-          cTokenization.addToParseList(converter.stanford2concrete(aSent.getStanfordContituencyTree(), tzUUID));
+          Tree root = aSent.getStanfordContituencyTree();
+          List<Tree> leaves = root.getLeaves();
+          if (leaves.size() != n) {
+            int i = 0;
+            for (Tree node : leaves)
+              System.out.println((i++) + ": " + node.toString());
+            for (i = 0; i < n; i++)
+              System.out.println(i + ": " + aSent.getTokens().get(i).getWord());
+            throw new AnnotationException("number of leaves in the parse (" + leaves.size()
+                + ") is not equal to the number of tokens in the sentence (" + n+ ")");
+          }
+          cTokenization.addToParseList(converter.stanford2concrete(root, n, tzUUID));
         } catch (AnnotationException ae) {
           throw new RuntimeException("Unsure how to proceed given exception.", ae);
         }
@@ -99,7 +110,7 @@ public class AgigaAnnotationAdder {
         if (aToks.size() != cToks.size()) {
             throw new IllegalStateException("Number of tokens not equal: agiga=" + aToks.size()
                     + " concrete=" + cToks.size());
-        }        
+        }
         for (int i=0; i<cToks.size(); i++) {
             AgigaToken aTok = aToks.get(i);
             Token cTok = cToks.get(i);

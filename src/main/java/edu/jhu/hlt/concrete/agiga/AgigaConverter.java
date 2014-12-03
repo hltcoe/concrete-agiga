@@ -127,12 +127,16 @@ public class AgigaConverter {
   /**
    * Whenever there's an empty parse, this method will set the required constituent list to be an empty list. It's up to the caller on what to do with the
    * returned Parse.
-   * 
+   *
+   * @param n is the number of tokens in the sentence
+   *
    * @throws AnnotationException
    */
-  public Parse stanford2concrete(Tree root, UUID tokenizationUUID) throws AnnotationException {
+  public Parse stanford2concrete(Tree root, int n, UUID tokenizationUUID) throws AnnotationException {
     int left = 0;
     int right = root.getLeaves().size();
+    if (right != n)
+      throw new AnnotationException("number of leaves in the parse (" + right + ") is not equal to the number of tokens in the sentence (" + n + ")");
     int[] idCounter = new int[] { 0 };
     /*
      * this was a bug in stanford nlp; if you have a terminal with a space in it, like (CD 2 1/2) stanford's getLeaves() will return Trees for 2 and 1/2 whereas
@@ -145,7 +149,7 @@ public class AgigaConverter {
     deps.addToTokenizationTheoryList(tokenizationUUID);
     AnnotationMetadata md = this.metadata(this.props.getCParseToolName()).setDependencies(deps);
     p.setMetadata(md);
-    s2cHelper(root, idCounter, left, right, p, tokenizationUUID);
+    s2cHelper(root, idCounter, left, right, n, p, tokenizationUUID);
     if (!p.isSetConstituentList()) {
       logger.warn("Setting constituent list to compensate for the empty parse for tokenization id" + tokenizationUUID
           + " and tree " + root);
@@ -159,9 +163,20 @@ public class AgigaConverter {
    */
   private static final HeadFinder HEAD_FINDER = new SemanticHeadFinder();
 
-  private int s2cHelper(Tree root, int[] idCounter, int left, int right, Parse p, UUID tokenizationUUID)
+  /**
+   * 
+   * @param root
+   * @param idCounter is basically an int*, lets this recursive method update max id value
+   * @param left
+   * @param right
+   * @param n is the length of the sentence is tokens.
+   * @param p
+   * @param tokenizationUUID
+   * @return
+   * @throws AnnotationException
+   */
+  private int s2cHelper(Tree root, int[] idCounter, int left, int right, int n, Parse p, UUID tokenizationUUID)
       throws AnnotationException {
-    // if (idCounter.length == 1);
     if (idCounter.length != 1)
       throw new AnnotationException("ID counter must be one, but was: " + idCounter.length);
 
@@ -184,7 +199,7 @@ public class AgigaConverter {
     int leftPtr = left;
     for (Tree child : root.getChildrenAsList()) {
       int width = child.getLeaves().size();
-      int childId = s2cHelper(child, idCounter, leftPtr, leftPtr + width, p, tokenizationUUID);
+      int childId = s2cHelper(child, idCounter, leftPtr, leftPtr + width, n, p, tokenizationUUID);
       cb.addToChildList(childId);
 
       leftPtr += width;
@@ -364,7 +379,16 @@ public class AgigaConverter {
     tkz.addToTokenTaggingList(ner);
 
     Tree tree = sent.getStanfordContituencyTree();
-    Parse parse = stanford2concrete(tree, tUuid);
+    if (tree.getLeaves().size() != nTokens) {
+      int i = 0;
+      for (Tree n : tree.getLeaves()) 
+        logger.error((i++) + ": " + n.toString());
+      for (i = 0; i < nTokens; i++)
+        logger.error(i + ": " + tokList.get(i).getWord());
+      throw new AnnotationException("number of leaves in the parse (" + tree.getLeaves().size()
+          + ") is not equal to the number of tokens in the sentence (" + nTokens + ")");
+    }
+    Parse parse = stanford2concrete(tree, nTokens, tUuid);
     if (!allowEmpties && !parse.isSetConstituentList())
       logger.warn("Not adding empty constituency parse for tokenization id " + tUuid);
     else
