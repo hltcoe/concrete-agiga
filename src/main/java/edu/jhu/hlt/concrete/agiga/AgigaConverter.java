@@ -168,10 +168,10 @@ public class AgigaConverter {
     Constituent cb = new Constituent();
     cb.setId(idCounter[0]++);
     cb.setTag(root.value());
-    cb.setTokenSequence(extractTokenRefSequence(left, right, null, tokenizationUUID));
-
     Tree headTree = null;
-    if (!root.isLeaf()) {
+    if (root.isLeaf()) {
+      cb.setTokenSequence(extractTokenRefSequence(left, right, null, tokenizationUUID));
+    } else {
       try {
         headTree = HEAD_FINDER.determineHead(root);
       } catch (java.lang.IllegalArgumentException iae) {
