@@ -9,8 +9,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.thrift.TSerializer;
-import org.apache.thrift.protocol.TBinaryProtocol;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,6 +45,8 @@ import edu.jhu.hlt.concrete.Tokenization;
 import edu.jhu.hlt.concrete.TokenizationKind;
 import edu.jhu.hlt.concrete.UUID;
 import edu.jhu.hlt.concrete.communications.SuperCommunication;
+import edu.jhu.hlt.concrete.serialization.CommunicationSerializer;
+import edu.jhu.hlt.concrete.serialization.ThreadSafeCompactCommunicationSerializer;
 import edu.jhu.hlt.concrete.util.ConcreteUUIDFactory;
 import edu.jhu.hlt.concrete.validation.ValidatableTextSpan;
 import edu.stanford.nlp.trees.HeadFinder;
@@ -829,8 +829,7 @@ public class AgigaConverter {
 
     AgigaConverter ac = new AgigaConverter(addTextSpans);
 
-    TSerializer serializer = new TSerializer(new TBinaryProtocol.Factory());
-
+    CommunicationSerializer cs = new ThreadSafeCompactCommunicationSerializer();
     int c = 0;
     int step = 1000;
     for (int i = 2; i < args.length; i++) {
@@ -859,7 +858,7 @@ public class AgigaConverter {
           else
             comm = ac.convertDoc(doc);
 
-          byte[] commBytes = serializer.serialize(comm);
+          byte[] commBytes = cs.toBytes(comm);
           fos.write(commBytes);
 
           c++;
