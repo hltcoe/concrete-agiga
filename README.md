@@ -4,8 +4,8 @@ concrete-agiga
 concrete-agiga is a Java library that maps Annotated Gigaword documents to Concrete.
 
 ## TLDR / Quick start ##
-`mvn clean compile assembly:single`
-`java -cp target/xyz.jar edu.jhu.hlt.concrete.agiga.AgigaConverter path/to/output/dir drop-annotations path/to/xml/or/xml/gz/file`
+* `mvn clean compile assembly:single`
+* `java -cp target/xyz.jar edu.jhu.hlt.concrete.agiga.AgigaConverter path/to/output/dir drop-annotations path/to/xml/or/xml/gz/file`
 
 Arguments:
 * `path/to/output/dir` - where annotated files will end up
