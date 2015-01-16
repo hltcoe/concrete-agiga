@@ -1,0 +1,58 @@
+#!/bin/bash
+
+function usage {
+    cat <<EOF
+Usage: $0 /path/to/input/agiga.xml.gz /path/to/output/directory doc_ids+
+EOF
+}
+
+if [ "$#" -lt 3 ]; then
+    usage
+    exit 1
+fi
+
+set -o nounset
+
+INPUT="$1"
+OUTPUT_DIR="$2"
+DOC_IDS="$3"
+
+if [ ! -d "$OUTPUT_DIR" ]; then
+    mkdir -p "${OUTPUT_DIR}"
+fi
+
+DATE=$(date +%Y%m%d-%H%M%S)
+
+NO_COLOR="\033[0m"
+STATUS_COLOR="\033[34;01m"
+MAGENTA_COLOR="\033[35;01m"
+OK_COLOR="\033[32;01m"
+ERROR_COLOR="\033[31;01m"
+WARN_COLOR="\033[33;01m"
+
+#indices=($(gzip -cd "$INPUT" | grep -nP "<\/?DOC" | grep -A 1 "id=\"$2\"" | perl -pe 's/"/\"/g;' | perl -pe 's/(^.*)\s*$/"$1"\n/;'))
+for doc_id in "${DOC_IDS[@]}"; do
+    indices=($(gzip -cd "$INPUT" | grep -nP "<\/?DOC" | grep -A 1 "id=\"$doc_id\"" | perl -pe 's/(:<[^<>]+>)//g;'))
+    start=${indices[0]}
+    end=${indices[1]}
+    oxml="${OUTPUT_DIR}/${doc_id}.xml"
+    echo "<FILE id=\"single-for-${doc_id}-${DATE}\">" > "${oxml}"
+    gzip -cd "${INPUT}" | head -n${end} | tail -n+${start} >> "${oxml}"
+    echo "</FILE>" >> "${oxml}"
+    if [ -e "${oxml}.gz" ]; then
+	rm -f "${oxml}.gz";
+    fi
+    gcmd="gzip ${oxml}"
+    echo $gcmd
+    eval $gcmd
+    rcmd="run-converter ${oxml}.gz ${OUTPUT_DIR}"
+    echo $rcmd
+    eval $rcmd
+    res=$?
+    if [ "$res" -ne "0" ]; then
+	echo -e "$(ERROR_COLOR)[ERROR]$(NO_COLOR) Some error with ${doc_id} (code $res)."
+    fi
+    if [ -e "${OUTPUT_DIR}/${doc_id}.thrift" ]; then 
+	echo -e "${OK_COLOR}[OK]${NO_COLOR} See ${OUTPUT_DIR}/${doc_id}.thrift"
+    fi
+done
