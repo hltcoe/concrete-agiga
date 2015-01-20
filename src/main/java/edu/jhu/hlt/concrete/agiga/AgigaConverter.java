@@ -46,7 +46,7 @@ import edu.jhu.hlt.concrete.TokenizationKind;
 import edu.jhu.hlt.concrete.UUID;
 import edu.jhu.hlt.concrete.communications.SuperCommunication;
 import edu.jhu.hlt.concrete.serialization.CommunicationSerializer;
-import edu.jhu.hlt.concrete.serialization.ThreadSafeCompactCommunicationSerializer;
+import edu.jhu.hlt.concrete.serialization.CompactCommunicationSerializer;
 import edu.jhu.hlt.concrete.util.ConcreteUUIDFactory;
 import edu.jhu.hlt.concrete.validation.ValidatableTextSpan;
 import edu.stanford.nlp.trees.HeadFinder;
@@ -183,10 +183,10 @@ public class AgigaConverter {
     Constituent cb = new Constituent();
     cb.setId(idCounter[0]++);
     cb.setTag(root.value());
+	cb.setStart(left);
+	cb.setEnding(right);
     Tree headTree = null;
-    if (root.isLeaf()) {
-      cb.setTokenSequence(extractTokenRefSequence(left, right, null, tokenizationUUID));
-    } else {
+    if (!root.isLeaf()) {
       try {
         headTree = HEAD_FINDER.determineHead(root);
       } catch (java.lang.IllegalArgumentException iae) {
@@ -829,7 +829,7 @@ public class AgigaConverter {
 
     AgigaConverter ac = new AgigaConverter(addTextSpans);
 
-    CommunicationSerializer cs = new ThreadSafeCompactCommunicationSerializer();
+    CommunicationSerializer cs = new CompactCommunicationSerializer();
     int c = 0;
     int step = 1000;
     for (int i = 2; i < args.length; i++) {

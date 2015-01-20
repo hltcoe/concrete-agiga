@@ -3,7 +3,7 @@
 
   <groupId>edu.jhu.hlt</groupId>
   <artifactId>concrete-agiga</artifactId>
-  <version>3.10.3-SNAPSHOT</version>
+  <version>3.10.4</version>
 
   <name>Concrete - Agiga Converter</name>
 
@@ -29,7 +29,7 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <concrete.version>3.10.2</concrete.version>
+    <concrete.version>4.2.3</concrete.version>
   </properties>
 
   <build>
@@ -183,16 +183,56 @@
     </dependency>
   </dependencies>
 
-  <distributionManagement>
-    <repository>
-      <id>coe-mvn</id>
-      <name>coe-mvn-releases</name>
-      <url>http://10.162.95.20:8081/artifactory/libs-release-local</url>
-    </repository>
-    <snapshotRepository>
-      <id>coe-mvn</id>
-      <name>coe-mvn-snapshots</name>
-      <url>http://10.162.95.20:8081/artifactory/libs-snapshot-local</url>
-    </snapshotRepository>
-  </distributionManagement>
+  <profiles>
+    <profile>
+      <id>clsp</id>
+      <!-- For deploying to CLSP when you have an SSH tunnel setup on your machine. -->
+      <distributionManagement>
+        <repository>
+          <id>checker</id>
+          <name>checker-releases</name>
+          <url>http://localhost:8081/artifactory/libs-release-local</url>
+        </repository>
+        <snapshotRepository>
+          <id>checker</id>
+          <name>checker-snapshots</name>
+          <url>http://localhost:8081/artifactory/libs-snapshot-local</url>
+        </snapshotRepository>
+      </distributionManagement>
+    </profile>
+    <profile>
+      <id>coe</id>
+      <!-- For deploying to COE when you have an SSH tunnel setup on your machine. -->
+      <distributionManagement>
+        <repository>
+          <id>coe-mvn</id>
+          <name>coe-mvn-releases</name>
+          <url>http://localhost:8082/artifactory/libs-release-local</url>
+        </repository>
+        <snapshotRepository>
+          <id>coe-mvn-snapshots</id>
+          <name>coe-mvn-snapshots</name>
+          <url>http://localhost:8082/artifactory/libs-snapshot-local</url>
+        </snapshotRepository>
+      </distributionManagement>
+    </profile>
+    <profile>
+      <id>coe-local</id>
+      <!-- For deploying to COE when you're on the COE network. -->
+      <distributionManagement>
+        <repository>
+          <id>coe-mvn</id>
+          <name>coe-mvn-releases</name>
+          <url>http://10.162.95.47:8081/artifactory/libs-release-local</url>
+        </repository>
+        <snapshotRepository>
+          <id>coe-mvn-snapshots</id>
+          <name>coe-mvn-snapshots</name>
+          <url>http://10.162.95.47:8081/artifactory/libs-snapshot-local</url>
+        </snapshotRepository>
+      </distributionManagement>
+    </profile>
+  </profiles>
+
+
 </project>

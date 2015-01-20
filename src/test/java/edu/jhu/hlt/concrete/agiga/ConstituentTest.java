@@ -27,7 +27,7 @@ import edu.jhu.hlt.concrete.EntitySet;
 import edu.jhu.hlt.concrete.Parse;
 import edu.jhu.hlt.concrete.Tokenization;
 import edu.jhu.hlt.concrete.communications.SuperCommunication;
-import edu.jhu.hlt.concrete.serialization.ThreadSafeCompactCommunicationSerializer;
+import edu.jhu.hlt.concrete.serialization.CompactCommunicationSerializer;
 import edu.jhu.hlt.concrete.util.ConcreteException;
 
 /**
@@ -138,6 +138,6 @@ public class ConstituentTest {
   public void normal() throws ConcreteException, AnnotationException, IOException {
     Communication c = catu.getCommunication(testDataPath.toString());
     //new Serialization().toBytes(c);
-    new ThreadSafeCompactCommunicationSerializer().toBytes(c);
+	new CompactCommunicationSerializer().toBytes(c);
   }
 }
