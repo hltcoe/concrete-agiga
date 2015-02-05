@@ -16,7 +16,11 @@ Maven dependency
 ## TLDR / Quick start ##
 ```sh
 mvn clean compile assembly:single
-java -cp target/concrete-agiga-4.2.1-jar-with-dependencies.jar edu.jhu.hlt.concrete.agiga.AgigaConverter path/to/output/dir drop-annotations path/to/xml/or/xml/gz/file
+java -cp target/concrete-agiga-4.2.1-jar-with-dependencies.jar \
+    edu.jhu.hlt.concrete.agiga.AgigaConverter \
+    path/to/output/dir \
+    drop-annotations \
+    path/to/xml/or/xml/gz/file
 ```
 
 Arguments:
