@@ -138,6 +138,6 @@ public class ConstituentTest {
   public void normal() throws ConcreteException, AnnotationException, IOException {
     Communication c = catu.getCommunication(testDataPath.toString());
     //new Serialization().toBytes(c);
-	new CompactCommunicationSerializer().toBytes(c);
+    new CompactCommunicationSerializer().toBytes(c);
   }
 }
