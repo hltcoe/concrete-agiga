@@ -164,7 +164,7 @@ public class AgigaConverter {
   private static final HeadFinder HEAD_FINDER = new SemanticHeadFinder();
 
   /**
-   * 
+   *
    * @param root
    * @param idCounter is basically an int*, lets this recursive method update max id value
    * @param left
@@ -222,7 +222,7 @@ public class AgigaConverter {
   /**
    * In order to allow for possibly empty mentions, this will always return a validating TokenRefSequence, provided m.end &gt;= m.start. When the end points are
    * equal, the token index list will be the empty list, and a warning will be logged.
-   * 
+   *
    * @throws AnnotationException
    */
   public TokenRefSequence extractTokenRefSequence(AgigaMention m, UUID uuid) throws AnnotationException {
@@ -273,7 +273,7 @@ public class AgigaConverter {
 
   /**
    * name is the type of dependencies, e.g. "col-deps" or "col-ccproc-deps"
-   * 
+   *
    * @param tokenizationUUID
    * @param name the name or type of the dependency parse, e.g. "basic" or "collapsed"
    *        this MUST be included in metadata for a DepenencyParse.
@@ -381,7 +381,7 @@ public class AgigaConverter {
     Tree tree = sent.getStanfordContituencyTree();
     if (tree.getLeaves().size() != nTokens) {
       int i = 0;
-      for (Tree n : tree.getLeaves()) 
+      for (Tree n : tree.getLeaves())
         logger.error((i++) + ": " + n.toString());
       for (i = 0; i < nTokens; i++)
         logger.error(i + ": " + tokList.get(i).getWord());
@@ -412,10 +412,8 @@ public class AgigaConverter {
    * within the sentence itself if charOffset is negative. If those are not set, then we will use the provided charOffset, as long as it is non-negative.
    * Otherwise, this will throw a runtime exception. <br/>
    * This requires that there be tokens to process. If there are no tokens, a runtime exception is thrown.
-   * 
+   *
    * @param preserveTokenTaggings
-   *          TODO
-   * @param sentenceSegmentationUUID
    *          TODO
    *
    * @throws AnnotationException
@@ -503,7 +501,7 @@ public class AgigaConverter {
    * Create a concrete sentence based on the agiga sentence. If we're looking to add textspans, then we will first default to using the token character offsets
    * within the sentence itself if charsFromStartOfCommunication is negative. If those are not set, then we will use the provided charsFromStartOfCommunication,
    * as long as it is non-negative.
-   * 
+   *
    * @param preserveTokenTaggings
    *          TODO
    *
