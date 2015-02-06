@@ -32,7 +32,6 @@ Arguments:
 Requirements:
 * `java >= 1.7`
 * `mvn >= 3.0.4`
-* access to COE maven server OR locally installed `concrete-java` library matching this project's version
 
 ## Notes ##
 One implementation detail to be aware of:
