@@ -9,14 +9,14 @@ Maven dependency
 <dependency>
   <groupId>edu.jhu.hlt</groupId>
   <artifactId>concrete-agiga</artifactId>
-  <version>4.3.1</version>
+  <version>4.3.2</version>
 </dependency>
 ```
 
 ## TLDR / Quick start ##
 ```sh
 mvn clean compile assembly:single
-java -cp target/concrete-agiga-4.3.1-jar-with-dependencies.jar \
+java -cp target/concrete-agiga-4.3.2-jar-with-dependencies.jar \
     edu.jhu.hlt.concrete.agiga.AgigaConverter \
     path/to/output/dir \
     drop-annotations \
