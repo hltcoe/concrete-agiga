@@ -3,7 +3,7 @@
 
   <groupId>edu.jhu.hlt</groupId>
   <artifactId>concrete-agiga</artifactId>
-  <version>4.3.1</version>
+  <version>4.3.2</version>
 
   <name>Concrete - Agiga Converter</name>
   <description>Library providing utilities for converting Annotated Gigaword documents to the Concrete NLP data schema.</description>
