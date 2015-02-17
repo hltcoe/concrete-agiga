@@ -9,7 +9,7 @@ Maven dependency
 <dependency>
   <groupId>edu.jhu.hlt</groupId>
   <artifactId>concrete-agiga</artifactId>
-  <version>4.3.2</version>
+  <version>4.3.3</version>
 </dependency>
 ```
 
