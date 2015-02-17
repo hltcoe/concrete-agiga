@@ -14,6 +14,7 @@ import edu.jhu.hlt.concrete.TokenTagging;
 import edu.jhu.hlt.concrete.Tokenization;
 import edu.jhu.hlt.concrete.UUID;
 import edu.jhu.hlt.concrete.util.ConcreteUUIDFactory;
+import edu.jhu.hlt.concrete.util.TokenizationUtils.TagTypes;
 import edu.stanford.nlp.trees.Tree;
 
 /**
@@ -58,15 +59,18 @@ public class AgigaAnnotationAdder {
         TokenTagging lemma = new TokenTagging();
         lemma.setUuid(idF.getConcreteUUID());
         lemma.setMetadata(converter.getLemmaMetadata(tUuid));
-
+        lemma.setTaggingType(TagTypes.LEMMA.name());
+        
         TokenTagging pos = new TokenTagging();
         pos.setUuid(idF.getConcreteUUID());
         pos.setMetadata(converter.getPOSMetadata(tUuid));
-
+        lemma.setTaggingType(TagTypes.POS.name());
+        
         TokenTagging ner = new TokenTagging();
         ner.setUuid(idF.getConcreteUUID());
         ner.setMetadata(converter.getNERMetadata(tUuid));
-
+        lemma.setTaggingType(TagTypes.NER.name());
+        
         int n = aSent.getTokens().size();
         for (int tokId = 0; tokId < n; tokId++) {
           AgigaToken tok = aSent.getTokens().get(tokId);
