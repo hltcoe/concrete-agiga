@@ -9,14 +9,14 @@ Maven dependency
 <dependency>
   <groupId>edu.jhu.hlt</groupId>
   <artifactId>concrete-agiga</artifactId>
-  <version>4.3.3</version>
+  <version>4.4.0</version>
 </dependency>
 ```
 
 ## TLDR / Quick start ##
 ```sh
 mvn clean compile assembly:single
-java -cp target/concrete-agiga-4.3.2-jar-with-dependencies.jar \
+java -cp target/concrete-agiga-4.4.0-jar-with-dependencies.jar \
     edu.jhu.hlt.concrete.agiga.AgigaConverter \
     path/to/output/dir \
     drop-annotations \
@@ -30,7 +30,7 @@ Arguments:
 * `path/to/xml/or/xml/gz/file` - path to one or more `.xml` or `.xml.gz` files to process
 
 Requirements:
-* `java >= 1.7`
+* `java >= 1.8`
 * `mvn >= 3.0.4`
 
 ## Notes ##
