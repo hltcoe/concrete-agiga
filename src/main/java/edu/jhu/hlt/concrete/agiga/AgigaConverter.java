@@ -216,7 +216,7 @@ public class AgigaConverter {
     p.addToConstituentList(cb);
     if (!cb.isSetChildList())
       cb.setChildList(new ArrayList<Integer>());
-    return cb.id;
+    return cb.getId();
   }
 
   /**
